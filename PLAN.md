@@ -1,7 +1,7 @@
 # Plan de dev — Arrosoir 🌿 (nom de code)
 
 > Outil web privé pour gérer l'arrosage des plantes d'un foyer (3–4 personnes), hébergé gratuitement, accès restreint.
-> **Mode de travail : Claude pilote depuis le chat, un modèle local exécute dans Claude Code, Leo fait le relais.** Chaque étape est rendue, relue et validée avant la suivante.
+> **Mode de travail : Claude Code (cloud Anthropic, au moindre coût) réalise tout, phase par phase ; Leo valide chaque fin de phase et fait les actions manuelles.**
 
 ---
 
@@ -9,51 +9,43 @@
 
 ### 0.1 Rôles
 
-| Qui | Où | Rôle |
-|---|---|---|
-| **Claude** — pilote | chat claude.ai, idéalement un Projet « Arrosoir » avec `PLAN.md` et `inventaire.md` en fichiers | découpe chaque phase en étapes, écrit les briefs, relit les rendus, répond aux questions, valide ou fait corriger |
-| **Exécutant** | Claude Code sur le modèle local (LM Studio) | exécute un brief à la fois, strictement, écrit son rendu et s'arrête |
-| **Leo** — relais | entre les deux | dépose les briefs, lance l'exécutant, rapporte les rendus à Claude, fait les actions manuelles (comptes, tableaux de bord, tests sur téléphone) |
+| Qui | Rôle |
+|---|---|
+| **Claude Code** (cloud Anthropic) | lit ce plan, code, lance les vérifications, commit, coche les cases, résume chaque fin de phase |
+| **Leo** | valide en fin de phase, fait les actions marquées **[Leo]** (comptes, tableaux de bord, tests sur téléphone) |
 
-Aucune décision d'architecture ne se prend côté exécutant : tout ce que le brief ne tranche pas remonte en question.
+Ce plan est la source de vérité : en cas de doute sur le périmètre ou un choix d'architecture, Claude Code pose la question à Leo plutôt que de deviner.
 
-### 0.2 Boucle par étape
+### 0.2 Boucle par phase
 
-Démarrage : Leo crée le dossier du projet avec `PLAN.md` à la racine, `data/inventaire.md` et `docs/briefs/p0-e1.md` (premier brief, fourni par Claude).
+1. Lire la phase dans la section 11 et seulement les sections du plan qu'elle cite.
+2. La découper en petites étapes (0.3), à faire une à la fois, dans l'ordre.
+3. À chaque étape : implémenter, lancer `lint` + `typecheck` + `test` + `build`, commit (0.5), cocher la case correspondante.
+4. Case **[Leo]** : détailler à Leo ce qu'il doit faire, avancer sur ce qui n'en dépend pas, sinon attendre.
+5. Fin de phase : revue avec la skill `web-design-guidelines` sur les écrans modifiés (phases avec UI), vérification du critère ✅, résumé court (fait, écarts, actions Leo, questions), puis **stop** jusqu'à validation de Leo.
 
-1. **Brief** — Claude écrit `docs/briefs/pN-eM.md` (ex. `p1-e3.md`, modèle en 17.1). Leo le dépose dans le repo.
-2. **Exécution** — Leo ouvre une nouvelle session Claude Code : « Exécute docs/briefs/pN-eM.md ». L'exécutant lit `CLAUDE.md`, le brief, et seulement les sections de ce plan que le brief cite.
-3. **Rendu** — l'exécutant lance les vérifications, commit, écrit `docs/rendus/pN-eM.md` (modèle en 17.2) et `docs/rendus/pN-eM.diff`, puis s'arrête.
-4. **Relecture** — Leo apporte à Claude le rendu, le diff et, pour une étape d'UI, 1 à 3 captures prises sur téléphone (détail en 17.4).
-5. **Verdict** — Claude répond (modèle en 17.3) :
-   - ✅ **validé** → brief de l'étape suivante, qui commence par cocher dans `PLAN.md` les cases validées ;
-   - 🔁 **à corriger** → brief de correction `pN-eM-c1.md`, même boucle ;
-   - ⛔ **bloqué** → réponse à une question ou action manuelle pour Leo, puis reprise.
-
-À la fin d'une phase, Claude fait le bilan avec le critère ✅ de la section 11 avant d'ouvrir la suivante.
+Aucune fonctionnalité hors périmètre sans demander (voir backlog V2). Demander avant toute action irréversible : suppression de données, migration destructive, changement de fournisseur, push, déploiement.
 
 ### 0.3 Taille des étapes
 
-- Une étape = une session de l'exécutant : un résultat vérifiable, 5 fichiers touchés environ au maximum, une seule notion nouvelle à la fois (« schéma Prisma + migration », pas « schéma + auth + écran »).
-- Chaque case des checklists de la section 11 correspond à peu près à une étape ; Claude peut la découper ou en regrouper plusieurs.
-- Les cases marquées **[Leo]** sont des actions manuelles (créer un projet Supabase, vérifier un domaine…). Claude les détaille pour Leo ; l'exécutant n'y touche pas.
-- Les briefs sont autonomes : ils recopient les extraits du plan utiles à l'étape (schéma, règles de calcul, contraintes) pour que l'exécutant n'ait pas à lire tout le plan.
+- Une étape = un résultat vérifiable, environ 5 fichiers touchés au maximum, une seule notion nouvelle à la fois (« schéma Prisma + migration », pas « schéma + auth + écran »).
+- Chaque case des checklists de la section 11 correspond à peu près à une étape ; elle peut être découpée ou regroupée.
+- Les cases marquées **[Leo]** sont des actions manuelles : Claude Code les détaille et n'y touche pas.
 
-### 0.4 Règles de l'exécutant
+### 0.4 Règles de travail
 
 Reprises dans `CLAUDE.md` (section 13) :
 
-- Faire exactement ce que dit le brief : pas de refactoring, de dépendance, de fichier ou de fonctionnalité non demandés.
-- Doute, ambiguïté, choix non prévu, API ou limite qui semble différente de ce que dit le brief → ne pas deviner : question dans le rendu ; continuer seulement ce qui n'en dépend pas.
-- Vérifications en échec après 2 tentatives de correction → stop, rendu « partiel » avec les erreurs brutes.
-- Toujours finir par le rendu, même en cas d'échec, puis s'arrêter : ne jamais enchaîner sur l'étape suivante.
-- `PLAN.md` : ne cocher que les cases que le brief indique.
+- Faire ce que demande la phase : pas de refactoring, de dépendance ou de fonctionnalité non prévus.
+- Doute, ambiguïté, API ou limite qui semble différente du plan : vérifier la doc officielle et signaler l'écart à Leo avant d'adapter.
+- Vérifications en échec après 2 tentatives de correction : stop, rapport avec les erreurs brutes.
+- Ne cocher une case qu'une fois l'étape terminée et les vérifications vertes.
 
 ### 0.5 Git
 
-- Dépôt Git local dès la première étape ; un commit par étape : `pN-eM: <résumé>` (correction : `pN-eM-c1: …`).
-- Diff du rendu : `git diff HEAD~1 -- . ':!package-lock.json' > docs/rendus/pN-eM.diff`. Au-delà d'environ 1 500 lignes (initialisation, fichiers générés), remplacer par `git show --stat HEAD` et lister les fichiers clés : Claude demandera ceux qu'il veut lire.
-- Une étape à corriger n'est pas annulée : la correction s'ajoute par-dessus, sauf si Claude demande un `git revert`.
+- Dépôt Git local ; un commit par étape : `pN-eM: <résumé>` (ex. `p1-e3: add requireMember guard`), en anglais.
+- Pas de push ni de déploiement sans l'accord de Leo.
+- `docs/briefs/` et `docs/rendus/` datent de l'ancien mode de travail (pilote / exécutant local) : conservés comme historique, plus alimentés.
 
 ### 0.6 Hypothèses par défaut (modifiables)
 
@@ -79,59 +71,35 @@ Config dans `.mcp.json` à la racine du projet (portée projet) :
 
 - Node ≥ 20 requis. Si Claude Code ne trouve pas `npx` (nvm, fnm, volta) : `claude mcp add findskills -- $(which npx) -y findskills-mcp`.
 - Usage : quand une étape s'y prête (Next.js, Prisma, Supabase, tests, accessibilité), chercher une skill ; filtrer sur les scores qualité / sécurité ; privilégier les sources connues (`anthropics`, `vercel-labs`).
-- **Ne jamais installer une skill trouvée** : la proposer dans le rendu (source + contenu), Claude décide.
+- **Ne jamais installer une skill trouvée** sans avoir montré sa source et son contenu à Leo (une skill peut contenir des scripts).
 
 **2. Vercel Web Interface Guidelines** (https://vercel.com/design/guidelines) — règles d'interface : interactions, animations, mise en page, contenu, formulaires, performance.
 
-- Télécharger `AGENTS.md` à la racine : `curl -o AGENTS.md https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/AGENTS.md`. L'exécutant le lit pour les étapes d'UI (section 13).
-- Installer la skill de revue : `npx skills add https://github.com/vercel-labs/agent-skills --skill web-design-guidelines` (si la commande demande l'agent : Claude Code, portée projet). L'exécutant la lance sur les étapes d'UI et joint son résultat au rendu.
+- Télécharger `AGENTS.md` à la racine : `curl -o AGENTS.md https://raw.githubusercontent.com/vercel-labs/web-interface-guidelines/main/AGENTS.md`. Claude Code le lit avant tout travail d'UI (section 13).
+- Installer la skill de revue : `npx skills add https://github.com/vercel-labs/agent-skills --skill web-design-guidelines` (si la commande demande l'agent : Claude Code, portée projet). Elle sert à la revue de fin de phase (0.2).
 - Arbitrages : la partie « Vercel-specific » (Title Case, etc.) ne s'applique pas → UI en français, casse de phrase, guillemets « », formats fr-BE. Ne jamais bloquer le zoom : champs de saisie ≥ 16 px sur mobile.
 
 **3. DESIGN.md** (https://github.com/VoltAgent/awesome-design-md) — système de design en markdown (palette, typo, composants, espacements, do / don't) tiré d'un site connu. Copié à la racine, il donne une direction visuelle cohérente.
 
 - `git clone --depth 1 https://github.com/VoltAgent/awesome-design-md.git /tmp/awesome-design-md`, puis copier le `DESIGN.md` du site choisi (dossier `design-md/`) à la racine. Chaque site a aussi `preview.html` et `preview-dark.html` pour voir le rendu avant de choisir.
-- Choix fait par Leo et Claude en phase 0 (Leo compare les previews). Pistes pour une app de plantes mobile et photo : **Notion** (minimalisme chaleureux, surfaces douces), **Airbnb** (photos au premier plan, formes arrondies), **Starbucks** (palette vert / crème).
+- Choix à confirmer avec Leo en phase 0 (Leo compare les previews). Pistes pour une app de plantes mobile et photo : **Notion** (minimalisme chaleureux, surfaces douces), **Airbnb** (photos au premier plan, formes arrondies), **Starbucks** (palette vert / crème).
 - Adapter, pas cloner : garder la structure et l'esprit, accent vert, polices propriétaires remplacées par des équivalents libres (Google Fonts), aucun logo ni nom de la marque d'origine.
 - Traduire les tokens en variables CSS shadcn (`globals.css`) + thème Tailwind : une seule source de vérité, aucune couleur en dur dans les composants.
 
 **Priorités en cas de conflit** : `PLAN.md` (fonctionnel) > règles d'accessibilité d'`AGENTS.md` > `DESIGN.md` (style).
 
-### 0.8 Exécutant : modèle local (settings.json)
+### 0.8 Modèle et coûts (cloud Anthropic)
 
-Claude Code n'appelle pas les serveurs cloud d'Anthropic : il cible l'API locale configurée par Leo dans `settings.json` (LM Studio, qui expose un endpoint compatible Anthropic `/v1/messages` depuis sa version 0.4.1). Claude, le pilote, n'intervient que dans le chat.
+Claude Code tourne sur le cloud Anthropic, au moindre coût. L'ancienne piste « API locale / LM Studio » est abandonnée : `settings.json` ne doit plus router vers `localhost` (clés `ANTHROPIC_BASE_URL`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_MODEL`, `ANTHROPIC_DEFAULT_*_MODEL`, `CLAUDE_CODE_SUBAGENT_MODEL`, `CLAUDE_CODE_MAX_CONTEXT_TOKENS`), et `CLAUDE.md` n'en tient plus compte. C'est Leo qui gère `settings.json`.
 
-- `settings.json` est géré par Leo : l'exécutant ne modifie jamais ses clés de routage et ne propose pas de basculer vers le cloud. API locale injoignable (LM Studio fermé, modèle non chargé) → rendu « bloqué » et stop.
-- Clés attendues — référence pour vérifier, **pas pour écraser** :
-
-```json
-{
-  "env": {
-    "ANTHROPIC_BASE_URL": "http://localhost:1234",
-    "ANTHROPIC_AUTH_TOKEN": "lmstudio",
-    "ANTHROPIC_MODEL": "<id du modèle chargé dans LM Studio>",
-    "ANTHROPIC_DEFAULT_OPUS_MODEL": "<même id>",
-    "ANTHROPIC_DEFAULT_SONNET_MODEL": "<même id>",
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "<même id>",
-    "CLAUDE_CODE_SUBAGENT_MODEL": "<même id>",
-    "CLAUDE_CODE_MAX_CONTEXT_TOKENS": "<contexte réglé dans LM Studio, ex. 65536>",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1"
-  },
-  "enableArtifact": false,
-  "disableClaudeAiConnectors": true,
-  "syncClaudeAiSkills": false,
-  "syncClaudeAiPlugins": false
-}
-```
-
-- Rôle de chaque groupe :
-  - les alias `opus` / `sonnet` / `haiku` et les sous-agents pointent tous vers le modèle local (l'alias `haiku` sert aussi aux tâches de fond) ;
-  - `CLAUDE_CODE_MAX_CONTEXT_TOKENS` aligne la compaction automatique sur le contexte réel du modèle local ;
-  - `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` coupe mises à jour auto, télémétrie, rapports d'erreur et feedback ;
-  - Artifact, connecteurs et synchronisations claude.ai sont désactivés : ce sont des services Anthropic.
-- Outil à ne pas utiliser : **WebSearch** (exécuté côté Anthropic, indisponible avec l'API locale). Pour la documentation, WebFetch sur les URLs officielles citées dans le brief.
-- Contexte : LM Studio réglé sur ≥ 32K tokens (64K si la mémoire le permet). Claude Code consomme beaucoup de contexte et, sans cache de prompt côté serveur local, chaque requête retraite tout l'historique → une étape par session (0.3) et `CLAUDE.md` léger.
-- Si des requêtes longues expirent : j'augmente `API_TIMEOUT_MS` dans `settings.json`.
-- L'app elle-même : en dev, aucun appel au cloud Anthropic non plus (`AI_MOCK=true` ou `AI_BASE_URL` local, section 7.1). En prod, l'app hébergée sur Vercel appelle l'API Anthropic : c'est l'app, pas Claude Code, et Vercel ne peut pas joindre mon Mac.
+- **Modèle par défaut : Haiku 4.5** (`claude-haiku-4-5-20251001`, le moins cher). Sonnet (`claude-sonnet-5-5`) seulement pour les étapes à fort enjeu — auth + RLS (phase 1), moteur d'arrosage (phase 3), diagnostic (phase 5) — puis retour à Haiku. Pas d'Opus ni de Fable sans l'accord de Leo. Le changement de modèle se fait depuis le sélecteur de modèle, par Leo.
+- **Sessions courtes** : une phase, ou une sous-phase, par session ; `/clear` entre deux. `CLAUDE.md` court.
+- **Lecture ciblée** : `grep` et plages de lignes plutôt que fichiers entiers ; ne lire du plan que les sections utiles à l'étape.
+- **Pas de sous-agents** ni de recherche large quand une lecture directe suffit.
+- **Web** : WebFetch sur les URLs officielles citées dans ce plan ; WebSearch seulement si la doc officielle ne suffit pas.
+- **Suivi** : point de consommation en fin de phase ; signaler à Leo tout usage anormal.
+- **Plafond** : plafond de dépense mensuel dans la console Anthropic si Claude Code est facturé à l'API (inutile avec un abonnement).
+- **L'app elle-même** : en dev, `AI_MOCK=true` (zéro coût), vrais appels ponctuels seulement. En prod, l'app appelle l'API Anthropic depuis Vercel (section 7.1).
 
 ---
 
@@ -180,7 +148,7 @@ Non-objectifs : capteurs connectés, multi-foyers, inscription publique, app nat
 | Tests | Vitest | moteur d'arrosage + schémas |
 | Capteurs | 2 × SwitchBot Meter + 1 Hub Mini, API cloud SwitchBot v1.1 + webhook | mesures réelles (section 16) |
 
-**Seul poste payant : l'API IA**, facturée à l'usage. → plafond de dépense mensuel dans la console Anthropic + quota journalier dans l'app (section 7).
+**Postes payants : l'API IA** de l'app (à l'usage) **et Claude Code** (abonnement ou API, section 0.8). → plafond de dépense mensuel dans la console Anthropic + quota journalier dans l'app (section 7).
 
 ### Contraintes des offres gratuites (à respecter dans le code)
 
@@ -225,8 +193,7 @@ prisma/
 data/
   inventaire.md              # rempli par moi (section 14)
 docs/
-  briefs/                    # écrits par Claude : pN-eM.md (modèle 17.1)
-  rendus/                    # écrits par l'exécutant : pN-eM.md + pN-eM.diff (modèle 17.2)
+  briefs/, rendus/           # historique de l'ancien mode de travail (0.5), plus alimentés
 ```
 
 - Toutes les lectures/écritures passent par le serveur (Server Components + Server Actions), avec vérification de la session **et** de l'appartenance à `Member`.
@@ -478,12 +445,12 @@ Si les 3 derniers cycles contiennent chacun au moins un SKIP → **proposer** (b
 
 ### 7.1 Principes
 
-- Modèles configurables par variables d'environnement : fiches → `AI_MODEL_PROFILE` (défaut `claude-haiku-4-5-20251001`), diagnostic → `AI_MODEL_DIAGNOSIS` (défaut `claude-sonnet-5-5`). Vérifier les identifiants à jour dans la doc Anthropic.
+- Modèles configurables par variables d'environnement : fiches → `AI_MODEL_PROFILE` (défaut `claude-haiku-4-5-20251001`), diagnostic → `AI_MODEL_DIAGNOSIS` (défaut `claude-haiku-4-5-20251001`, le moins cher ; passer à `claude-sonnet-5-5` si les diagnostics sont décevants). Vérifier les identifiants à jour dans la doc Anthropic.
 - Sorties **JSON strict** (tool use / structured output), validées par Zod ; 1 nouvel essai si invalide, sinon message d'erreur propre.
 - Appels uniquement côté serveur. Chaque appel est journalisé dans `AiUsage`. Quota `AI_DAILY_LIMIT` par membre (défaut 20/jour).
 - `AI_MOCK=true` → renvoie des fixtures (dev + tests, zéro coût). **Valeur par défaut en dev.**
-- `AI_BASE_URL` (optionnel) : en dev, pointe vers LM Studio (API compatible Anthropic, ex. `http://localhost:1234`) pour tester avec un vrai modèle sans passer par le cloud ; le client IA le passe en `baseURL` au SDK. Vide en prod (Vercel) → API Anthropic. Le diagnostic photo en local demande un modèle qui gère les images ; sinon, rester en mock.
-- En dev, jamais de vraie `ANTHROPIC_API_KEY` dans `.env.local` : Claude Code ne doit déclencher aucun appel au cloud Anthropic, même indirectement en lançant l'app.
+- Vrais appels en dev : ponctuels, avec `AI_MOCK=false` et une clé dédiée à plafond bas ; le reste du temps, mock. `ANTHROPIC_API_KEY` reste côté serveur uniquement : jamais dans le dépôt ni côté client.
+- Coût maîtrisé : `max_tokens` borné par appel, photos réduites (~1500 px) avant envoi, réutilisation des `Species` existantes (7.2) → aucun appel inutile.
 - Tout ce que produit l'IA est **modifiable** et marqué « à valider » tant qu'un humain ne l'a pas relu.
 
 ### 7.2 Génération de fiche espèce
@@ -591,13 +558,14 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 
 ## 11. Phases de développement
 
-Claude découpe chaque phase en étapes au moment de l'ouvrir (0.3). **[Leo]** = action manuelle, sans l'exécutant. Le critère ✅ est vérifié par Claude au bilan de fin de phase.
+**[Leo]** = action manuelle, que Claude Code détaille sans l'exécuter. Le critère ✅ est vérifié en fin de phase (0.2).
 
 ### Phase 0 — Socle
 
-- [ ] Dépôt Git, `CLAUDE.md` (section 13), dossiers `docs/briefs/` et `docs/rendus/` ; vérifier le routage vers l'API locale (0.8) : `echo $ANTHROPIC_BASE_URL` renvoie l'URL locale et les requêtes apparaissent dans les logs de LM Studio
-- [ ] Init Next.js (TS strict, ESLint, Prettier), Tailwind, shadcn/ui
-- [ ] Vitest ; scripts `lint`, `typecheck`, `test`, `build`, `db:migrate`, `db:seed` ; `.env.example` (section 12)
+- [x] Dépôt Git, `CLAUDE.md` (section 13), dossiers `docs/briefs/` et `docs/rendus/` (historique, 0.5)
+- [ ] **[Leo]** Passer Claude Code sur le cloud (0.8) : retirer de `settings.json` le routage LM Studio, choisir Haiku 4.5 dans le sélecteur de modèle, fixer un plafond de dépense dans la console Anthropic si Claude Code est facturé à l'API
+- [x] Init Next.js (TS strict, ESLint, Prettier), Tailwind, shadcn/ui
+- [x] Vitest ; scripts `lint`, `typecheck`, `test`, `build`, `db:migrate`, `db:seed` ; `.env.example` (section 12)
 - [ ] **[Leo]** Créer le projet Supabase (région UE) et renseigner `.env.local` (URLs de base, clés)
 - [ ] Prisma + connexion Supabase (URL poolée / directe), première migration
 - [ ] Outillage (0.7) : `.mcp.json` findskills, `AGENTS.md` Vercel, skill `web-design-guidelines`
@@ -708,10 +676,9 @@ ALLOWED_EMAILS=toi@exemple.be,autre@exemple.be
 # IA
 ANTHROPIC_API_KEY=
 AI_MODEL_PROFILE=claude-haiku-4-5-20251001
-AI_MODEL_DIAGNOSIS=claude-sonnet-5-5
+AI_MODEL_DIAGNOSIS=claude-haiku-4-5-20251001   # moins cher ; passer à claude-sonnet-5-5 si les diagnostics déçoivent
 AI_DAILY_LIMIT=20
-AI_MOCK=true                           # dev : true (ou AI_BASE_URL local) ; prod : false
-AI_BASE_URL=                           # dev, optionnel : http://localhost:1234 (LM Studio) ; vide en prod
+AI_MOCK=true                           # dev : true ; prod : false
 
 # Emails
 RESEND_API_KEY=
@@ -735,25 +702,25 @@ HEATING_SEASON_END=04-15
 
 ## 13. Contenu de `CLAUDE.md`
 
-Lu par l'exécutant à chaque session. Volontairement court (contexte du modèle local limité).
+Lu à chaque session. Volontairement court (coût du contexte).
 
 ```md
-# Arrosoir — règles de l'exécutant
+# Arrosoir — règles du projet
 
-Tu es l'exécutant. Claude pilote depuis le chat, Leo fait le relais. Une session = un brief.
+Claude Code (cloud Anthropic, au moindre coût) réalise le plan phase par phase ; Leo valide en fin de phase.
 
 ## Démarrage
-- `echo $ANTHROPIC_BASE_URL` doit renvoyer l'URL locale. Sinon : rendu « bloqué » et stop.
-- Lire ce fichier, le brief indiqué (`docs/briefs/…`), et seulement les sections de PLAN.md que le brief cite.
+- Lire ce fichier, puis PLAN.md : §0 (mode de travail) et seulement les sections utiles à l'étape en cours (§11 pour la phase).
+- Cocher les cases de PLAN.md au fur et à mesure.
 
 ## Règles
-- Faire exactement ce que dit le brief. Rien d'autre : pas de refactoring, de dépendance, de fichier ou de fonctionnalité non demandés.
-- Doute, ambiguïté, choix non prévu, API qui semble différente du brief : ne pas deviner. Question dans le rendu ; continuer seulement ce qui n'en dépend pas.
-- Vérifications demandées par le brief (lint, typecheck, test, build). Après 2 tentatives de correction infructueuses : stop, rendu « partiel » avec les erreurs brutes.
-- Fin de session, toujours, même en échec : commit `pN-eM: …`, rendu `docs/rendus/pN-eM.md` (modèle PLAN.md §17.2) + diff (§0.5), puis stop. Ne jamais enchaîner sur l'étape suivante.
-- PLAN.md : ne cocher que les cases que le brief indique.
-- API locale uniquement : ne jamais modifier le routage de settings.json ; pas de WebSearch, pas d'Artifact, pas de vraie clé Anthropic dans .env.local.
-- Skills : ne jamais en installer. Une skill utile trouvée via findskills → la proposer dans le rendu (source + contenu).
+- Pas de fonctionnalité, de dépendance ni de refactoring hors périmètre sans demander à Leo (backlog V2 = pas sans validation).
+- Doute, ambiguïté, API ou limite qui semble différente du plan : vérifier la doc officielle, signaler l'écart avant d'adapter.
+- Avant de clore une étape : lint, typecheck, test, build. Après 2 tentatives de correction infructueuses : stop, rapport avec les erreurs brutes.
+- Un commit par étape `pN-eM: …`. Jamais de push, de déploiement ni d'action irréversible sans l'accord de Leo.
+- Fin de phase : revue `web-design-guidelines` (phases avec UI), critère ✅ vérifié, résumé court, puis stop et attendre la validation.
+- Coûts : modèle par défaut Haiku 4.5, lecture ciblée (grep, plages de lignes), sessions courtes (PLAN.md §0.8).
+- Skills : chercher avec le MCP findskills quand une tâche s'y prête ; ne jamais installer une skill trouvée sans avoir montré sa source et son contenu à Leo.
 
 ## Code
 - Code, noms de variables et commits en anglais ; UI et contenus en français.
@@ -761,8 +728,8 @@ Tu es l'exécutant. Claude pilote depuis le chat, Leo fait le relais. Une sessio
 - `lib/watering` reste pur (aucun import Prisma/Next) et couvert par les tests.
 - Jamais de clé secrète côté client. Tout accès aux données = serveur + `requireMember()`.
 - Dates : toujours via `lib/dates` (fuseau Europe/Brussels). Photos : URL d'upload signée, jamais via Server Action.
-- Étapes d'UI : lire DESIGN.md et AGENTS.md ; tokens du thème, jamais de couleur en dur ; ignorer la partie « Vercel-specific » d'AGENTS.md (casse de phrase, guillemets « », formats fr-BE) ; champs ≥ 16 px sur mobile ; lancer la revue `web-design-guidelines` et joindre son résultat au rendu.
-- Priorités : PLAN.md > accessibilité (AGENTS.md) > style (DESIGN.md). Conflit → question dans le rendu.
+- UI : lire DESIGN.md et AGENTS.md avant tout travail d'UI ; tokens du thème, jamais de couleur en dur ; ignorer la partie « Vercel-specific » d'AGENTS.md (casse de phrase, guillemets « », formats fr-BE) ; champs ≥ 16 px sur mobile.
+- Priorités : PLAN.md > accessibilité (AGENTS.md) > style (DESIGN.md). Conflit → demander à Leo.
 
 ## Commandes
 npm run dev | lint | typecheck | test | build | db:migrate | db:seed
@@ -786,7 +753,7 @@ Le seed ignore les commentaires `<!-- -->`, crée une seule `Species` par nom bo
 - Les fiches IA peuvent se tromper → toujours relues, modifiables, marquées « à valider ».
 - Pas de sauvegarde automatique sur Supabase Free → lancer l'export JSON de temps en temps.
 - Si le projet Supabase est mis en pause malgré tout (cron raté plusieurs jours), il se relance depuis le dashboard.
-- Le coût IA est le seul poste variable : plafond dans la console Anthropic + quota dans l'app.
+- Les coûts variables sont l'IA de l'app et Claude Code : plafond dans la console Anthropic, quota dans l'app, sessions courtes (0.8).
 
 ---
 
@@ -833,98 +800,3 @@ Le cron quotidien (section 9) appelle aussi `/status` pour chaque capteur associ
   - chaud : dernière mesure > `HEAT_ALERT_C` (défaut 35 °C, pour la véranda l'été).
 - **Écrans** : Pièces → température / humidité actuelles + mini-courbe 7 jours. Réglages › Capteurs → Meter du compte, association capteur ↔ pièce, « Activer le webhook », dernier relevé, batterie.
 - Volume : quelques Mo par an, aucune purge nécessaire.
-
----
-
-## 17. Modèles : brief, rendu, verdict
-
-### 17.1 Brief — écrit par Claude (`docs/briefs/pN-eM.md`)
-
-````md
-# Brief pN-eM — <titre>
-
-Sections de PLAN.md à lire : §x.y, §z (et rien d'autre)
-Objectif : <un résultat vérifiable, en une phrase>
-
-## Avant de commencer
-- Cocher dans PLAN.md : <cases validées à l'étape précédente>
-
-## À faire
-1. <fichier / fonction / comportement précis>
-2. …
-
-## Extraits utiles
-<schéma, règle de calcul, format JSON… recopiés du plan pour que le brief se suffise>
-
-## Hors périmètre
-- …
-
-## Contraintes
-- Dépendances autorisées : … (aucune autre)
-- Fichiers à ne pas toucher : …
-
-## Vérifications
-- `npm run lint && npm run typecheck && npm run test && npm run build`
-- Critère de réussite : <ce que Claude vérifiera dans le rendu>
-
-## Rendu
-`docs/rendus/pN-eM.md` + `docs/rendus/pN-eM.diff` (modèle §17.2), puis stop.
-````
-
-### 17.2 Rendu — écrit par l'exécutant (`docs/rendus/pN-eM.md`)
-
-````md
-# Rendu pN-eM — <titre>
-
-Statut : ✅ terminé | ⚠️ partiel | ⛔ bloqué
-Commit : <hash court>
-
-## Fait
-- …
-
-## Écarts avec le brief
-- … (et pourquoi) — sinon « aucun »
-
-## Fichiers
-- Créés : …
-- Modifiés : …
-
-## Vérifications
-| lint | typecheck | test | build |
-|---|---|---|---|
-| ✅ / ❌ | ✅ / ❌ | ✅ x/y | ✅ / ❌ |
-
-Erreurs brutes (si ❌) :
-```
-<sortie des commandes>
-```
-
-## Choix faits
-- … (seulement si le brief laissait une option)
-
-## Questions pour Claude
-- …
-
-## Revue UI (étapes d'UI)
-<résultat de web-design-guidelines>
-
-## Diff
-`docs/rendus/pN-eM.diff`
-````
-
-### 17.3 Verdict — écrit par Claude dans le chat
-
-````md
-Verdict pN-eM : ✅ validé | 🔁 à corriger | ⛔ bloqué
-Points relevés : …
-Réponses aux questions : …
-Action Leo (si besoin) : …
-Suite : brief pN-eM+1 (ou pN-eM-c1)
-````
-
-### 17.4 Ce que Leo apporte à Claude
-
-- Le rendu `.md` et le `.diff`, glissés dans le chat.
-- Étape d'UI : 1 à 3 captures prises sur téléphone.
-- Échec bloquant : la sortie brute de l'erreur, si elle n'est pas déjà dans le rendu.
-- Une conversation par phase dans le Projet claude.ai « Arrosoir », pour garder un fil court ; `PLAN.md` à jour dans les fichiers du Projet.
