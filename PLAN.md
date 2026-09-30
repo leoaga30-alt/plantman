@@ -568,7 +568,7 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 - [x] Vitest ; scripts `lint`, `typecheck`, `test`, `build`, `db:migrate`, `db:seed` ; `.env.example` (section 12)
 - [ ] **[Leo]** Créer le projet Supabase (région UE) et renseigner `.env.local` (URLs de base, clés)
 - [ ] Prisma + connexion Supabase (URL poolée / directe), première migration
-- [ ] Outillage (0.7) : `.mcp.json` findskills, `AGENTS.md` Vercel, skill `web-design-guidelines`
+- [x] Outillage (0.7) : `.mcp.json` findskills, `AGENTS.md` Vercel, skill `web-design-guidelines`
 - [ ] **[Leo + Claude]** Choix du `DESIGN.md` ; puis copie à la racine, adaptation, tokens traduits en variables CSS shadcn + thème Tailwind, page `/design` de démonstration (couleurs, typo, boutons, cartes, champs)
 - [ ] **[Leo]** Dépôt GitHub privé connecté à Vercel, variables d'environnement dans Vercel, premier déploiement
 
