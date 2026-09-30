@@ -563,14 +563,14 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 ### Phase 0 — Socle
 
 - [x] Dépôt Git, `CLAUDE.md` (section 13), dossiers `docs/briefs/` et `docs/rendus/` (historique, 0.5)
-- [ ] **[Leo]** Passer Claude Code sur le cloud (0.8) : retirer de `settings.json` le routage LM Studio, choisir Haiku 4.5 dans le sélecteur de modèle, fixer un plafond de dépense dans la console Anthropic si Claude Code est facturé à l'API
+- [x] **[Leo]** Passer Claude Code sur le cloud (0.8) : retirer de `settings.json` le routage LM Studio, choisir Haiku 4.5 dans le sélecteur de modèle, fixer un plafond de dépense dans la console Anthropic si Claude Code est facturé à l'API
 - [x] Init Next.js (TS strict, ESLint, Prettier), Tailwind, shadcn/ui
 - [x] Vitest ; scripts `lint`, `typecheck`, `test`, `build`, `db:migrate`, `db:seed` ; `.env.example` (section 12)
 - [ ] **[Leo]** Créer le projet Supabase (région UE) et renseigner `.env.local` (URLs de base, clés)
-- [ ] Prisma + connexion Supabase (URL poolée / directe), première migration
+- [x] Prisma + connexion Supabase (URL poolée / directe), première migration
 - [x] Outillage (0.7) : `.mcp.json` findskills, `AGENTS.md` Vercel, skill `web-design-guidelines`
-- [ ] **[Leo + Claude]** Choix du `DESIGN.md` ; puis copie à la racine, adaptation, tokens traduits en variables CSS shadcn + thème Tailwind, page `/design` de démonstration (couleurs, typo, boutons, cartes, champs)
-- [ ] **[Leo]** Dépôt GitHub privé connecté à Vercel, variables d'environnement dans Vercel, premier déploiement
+- [x] **[Leo + Claude]** Choix du `DESIGN.md` ; puis copie à la racine, adaptation, tokens traduits en variables CSS shadcn + thème Tailwind, page `/design` de démonstration (couleurs, typo, boutons, cartes, champs)
+- [x] **[Leo]** Dépôt GitHub privé connecté à Vercel, variables d'environnement dans Vercel, premier déploiement
 
 ✅ L'URL Vercel répond, la migration est appliquée sur Supabase, `/design` reflète le thème, `claude mcp list` affiche findskills.
 
