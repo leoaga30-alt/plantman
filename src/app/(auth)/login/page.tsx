@@ -4,11 +4,9 @@ import { useState } from "react";
 
 export const dynamic = "force-dynamic";
 import { supabase } from "@/lib/auth/supabase";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,7 +33,9 @@ export default function LoginPage() {
         return;
       }
 
-      router.push(`/verify?email=${encodeURIComponent(email)}`);
+      setError(null);
+      alert(`✓ Lien de connexion envoyé à ${email}`);
+      setEmail("");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -84,12 +84,12 @@ export default function LoginPage() {
             disabled={loading || !email}
             className="w-full"
           >
-            {loading ? "Envoi du code..." : "Envoyer un code"}
+            {loading ? "Envoi du lien..." : "Envoyer un lien"}
           </Button>
         </form>
 
         <p className="text-xs text-center text-muted-foreground">
-          Vous recevrez un code à 6 chiffres par email.
+          Vous recevrez un lien de connexion par email. Cliquez-le pour vous connecter.
         </p>
       </div>
     </div>
