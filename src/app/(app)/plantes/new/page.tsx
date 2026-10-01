@@ -4,6 +4,7 @@ import { createPlant } from "@/app/actions/plants";
 import { getSpecies } from "@/app/actions/species";
 import { getRooms } from "@/app/actions/rooms";
 import { PlantForm } from "@/components/PlantForm";
+import { SpeciesSelector } from "@/components/SpeciesSelector";
 import { PlantFormData } from "@/types/species";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -14,6 +15,7 @@ export default function NewPlantPage() {
   const [species, setSpecies] = useState<Species[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedSpeciesId, setSelectedSpeciesId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -34,6 +36,13 @@ export default function NewPlantPage() {
     loadData();
   }, []);
 
+  const handleSelectSpecies = async (speciesId: string) => {
+    setSelectedSpeciesId(speciesId);
+    // Refresh species list to get the newly created one if generated
+    const updated = await getSpecies();
+    setSpecies(updated);
+  };
+
   const handleSubmit = async (data: PlantFormData) => {
     await createPlant(data);
     router.push("/plantes");
@@ -51,11 +60,24 @@ export default function NewPlantPage() {
     <div className="min-h-screen bg-background">
       <div className="max-w-2xl mx-auto px-4 py-6">
         <h1 className="text-3xl font-bold mb-8">Nouvelle plante</h1>
-        <PlantForm
-          species={species}
-          rooms={rooms}
-          onSubmit={handleSubmit}
-        />
+
+        {!selectedSpeciesId && (
+          <SpeciesSelector onSelectSpecies={handleSelectSpecies} />
+        )}
+
+        {selectedSpeciesId && (
+          <div className="space-y-6">
+            <p className="text-sm text-muted-foreground">
+              Espèce sélectionnée. Compléter les infos :
+            </p>
+            <PlantForm
+              initialSpeciesId={selectedSpeciesId}
+              species={species}
+              rooms={rooms}
+              onSubmit={handleSubmit}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

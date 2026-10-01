@@ -7,6 +7,7 @@ import { PlantFormData } from "@/types/species";
 
 interface PlantFormProps {
   plant?: Plant & { species?: Species; room?: Room };
+  initialSpeciesId?: string;
   species: Species[];
   rooms: Room[];
   onSubmit: (data: PlantFormData) => Promise<void>;
@@ -14,6 +15,7 @@ interface PlantFormProps {
 
 export function PlantForm({
   plant,
+  initialSpeciesId,
   species: speciesList,
   rooms: roomsList,
   onSubmit,
@@ -23,7 +25,7 @@ export function PlantForm({
   const [formData, setFormData] = useState({
     name: plant?.name || "",
     description: plant?.description || "",
-    speciesId: plant?.speciesId || "",
+    speciesId: plant?.speciesId || initialSpeciesId || "",
     roomId: plant?.roomId || "",
     potDiameterCm: plant?.potDiameterCm || "",
     potMaterial: plant?.potMaterial || "PLASTIC",
