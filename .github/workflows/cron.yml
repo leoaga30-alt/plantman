@@ -1,0 +1,14 @@
+name: Daily Cron
+on:
+  schedule:
+    - cron: '0 5 * * *'  # 5h UTC ≈ 6-7h Bruxelles
+
+jobs:
+  cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger daily digest
+        run: |
+          curl -X GET \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            https://arrosoir.vercel.app/api/cron/daily
