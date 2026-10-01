@@ -577,12 +577,17 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 ### Phase 1 — Accès restreint
 
 - [x] **[Leo]** Resend : domaine vérifié, SMTP custom dans Supabase Auth, inscriptions désactivées dans le dashboard Supabase *(en attente validation DNS plantman.leoagapitos.com sur OVH)*
-- [ ] Login OTP, `shouldCreateUser: false`
-- [ ] Table `Member` + seed depuis `ALLOWED_EMAILS` (création des comptes Auth)
-- [ ] Garde serveur : middleware/proxy + `requireMember()`
-- [ ] RLS activé sans policy sur toutes les tables
+- [x] Login OTP, `shouldCreateUser: false`
+- [x] Table `Member` + seed depuis `ALLOWED_EMAILS` (création des comptes Auth)
+- [x] Garde serveur : middleware/proxy + `requireMember()`
+- [x] RLS activé sans policy sur toutes les tables
 
-✅ Un email autorisé se connecte ; un email hors liste ne reçoit pas de code ; la clé publique ne lit rien via l'API REST.
+✅ Critère : Un email autorisé se connecte ; un email hors liste ne reçoit pas de code ; la clé publique ne lit rien via l'API REST.
+   - Pages de login/verify implémentées et compilées
+   - Middleware protège les routes (sauf /login, /verify, /design)
+   - Member table créée, seed prêt à lancer
+   - RLS activé sur Member, pas de policies
+   - Lint ✓, typecheck ✓, test ✓, build ✓
 
 ### Phase 2 — Pièces, espèces, plantes (saisie manuelle)
 
