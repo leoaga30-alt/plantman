@@ -3,7 +3,7 @@
 import { prisma } from "@/lib/db";
 import { requireMember } from "@/lib/auth/requireMember";
 import { getCurrentUser } from "@/lib/auth/session";
-import { calculateInterval } from "@/lib/watering/interval";
+import { calculateInterval, explainInterval, IntervalExplanation } from "@/lib/watering/interval";
 
 export interface PlantScheduleItem {
   plantId: string;
@@ -241,4 +241,38 @@ export async function getPlanningPlants(
   }
 
   return result;
+}
+
+export async function getPlantIntervalExplanation(
+  plantId: string
+): Promise<IntervalExplanation> {
+  await requireMember();
+
+  const plant = await prisma.plant.findUniqueOrThrow({
+    where: { id: plantId },
+    include: {
+      species: true,
+      room: true,
+    },
+  });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  return explainInterval({
+    intervalSpring: plant.species.intervalSpring,
+    intervalSummer: plant.species.intervalSummer,
+    intervalAutumn: plant.species.intervalAutumn,
+    intervalWinter: plant.species.intervalWinter,
+    temperature: plant.room?.tempSummer || 20,
+    light: (plant.room?.light || "MEDIUM") as "LOW" | "MEDIUM" | "BRIGHT" | "DIRECT_SUN",
+    humidity: (plant.room?.humidity || "NORMAL") as "DRY" | "NORMAL" | "HUMID",
+    nearHeater: plant.room?.nearHeater || false,
+    potDiameterCm: plant.potDiameterCm || undefined,
+    potMaterial: plant.potMaterial as "PLASTIC" | "TERRACOTTA" | "GLAZED_CERAMIC" | "OTHER",
+    intervalAdjust: plant.intervalAdjust || 1.0,
+    date: today,
+    heatingSeasonStart: "10-15",
+    heatingSeasonEnd: "04-15",
+  });
 }

@@ -7,11 +7,13 @@ import {
   archivePlant,
   unarchivePlant,
 } from "@/app/actions/plants";
+import { getPlantIntervalExplanation } from "@/app/actions/watering";
 import { getSpecies } from "@/app/actions/species";
 import { getRooms } from "@/app/actions/rooms";
 import { PlantForm } from "@/components/PlantForm";
 import { Button } from "@/components/ui/button";
 import { PlantFormData } from "@/types/species";
+import { IntervalExplanation } from "@/lib/watering/interval";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Plant, Species, Room } from "@prisma/client";
@@ -21,6 +23,7 @@ export default function PlantPage({ params }: { params: { id: string } }) {
   const [plant, setPlant] = useState<(Plant & { species?: Species; room?: Room }) | null>(null);
   const [species, setSpecies] = useState<Species[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [explanation, setExplanation] = useState<IntervalExplanation | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
@@ -35,6 +38,9 @@ export default function PlantPage({ params }: { params: { id: string } }) {
         setPlant(plantData);
         setSpecies(speciesData);
         setRooms(roomsData);
+
+        const explanation = await getPlantIntervalExplanation(params.id);
+        setExplanation(explanation);
       } catch (err) {
         console.error("Failed to load plant:", err);
         router.push("/plantes");
@@ -135,6 +141,27 @@ export default function PlantPage({ params }: { params: { id: string } }) {
               <p className="font-medium">{plant.room?.name}</p>
             </div>
           </div>
+
+          {explanation && (
+            <div className="p-4 bg-muted rounded-lg">
+              <p className="text-xs text-muted-foreground mb-2">
+                Intervalle d&apos;arrosage
+              </p>
+              <p className="text-sm font-medium mb-2">{explanation.baseLabel}</p>
+              {explanation.factors.length > 0 && (
+                <ul className="text-xs text-muted-foreground space-y-1 mb-2">
+                  {explanation.factors.map((factor, idx) => (
+                    <li key={idx}>
+                      × {factor.factor.toFixed(2)} ({factor.label})
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <p className="text-sm font-semibold text-primary">
+                Résultat: {explanation.final} j
+              </p>
+            </div>
+          )}
 
           {plant.species?.care && typeof plant.species.care === "object" && (
             <div className="p-4 bg-muted rounded-lg">
