@@ -36,3 +36,14 @@ export interface SpeciesFormData {
   care: CareSheet;
   validated: boolean;
 }
+
+export interface PlantFormData {
+  name: string;
+  description?: string;
+  speciesId: string;
+  roomId: string;
+  potDiameterCm?: number;
+  potMaterial: "PLASTIC" | "TERRACOTTA" | "GLAZED_CERAMIC" | "OTHER";
+  acquiredAt?: string;
+  coverPhotoPath?: string;
+}
