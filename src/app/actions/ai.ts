@@ -7,6 +7,7 @@ import {
   generateSpeciesProfile as generateProfile,
   generateDiagnosis as generateDiag,
 } from "@/lib/ai/client";
+import { SpeciesProfileSchema } from "@/lib/ai/schemas";
 import { z } from "zod";
 
 const DAILY_LIMIT = parseInt(process.env.AI_DAILY_LIMIT || "20", 10);
@@ -148,4 +149,100 @@ export async function getRemainingQuota() {
     remaining: Math.max(0, DAILY_LIMIT - used),
     total: DAILY_LIMIT,
   };
+}
+
+export async function getOrGenerateSpecies(commonName: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  // Check if species already exists (by name, scientific name, or alias)
+  const existing = await prisma.species.findMany();
+  const normalized = commonName
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim();
+
+  for (const species of existing) {
+    const speciesNorm = species.commonName
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .trim();
+    if (speciesNorm === normalized) {
+      return {
+        found: true,
+        speciesId: species.id,
+        profile: null,
+      };
+    }
+
+    if (species.scientificName) {
+      const sciNorm = species.scientificName
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .trim();
+      if (sciNorm === normalized) {
+        return {
+          found: true,
+          speciesId: species.id,
+          profile: null,
+        };
+      }
+    }
+
+    for (const alias of species.aliases) {
+      const aliasNorm = alias
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[̀-ͯ]/g, "")
+        .trim();
+      if (aliasNorm === normalized) {
+        return {
+          found: true,
+          speciesId: species.id,
+          profile: null,
+        };
+      }
+    }
+  }
+
+  // Not found, generate
+  const profile = await generateSpeciesProfile(commonName);
+
+  return {
+    found: false,
+    profile,
+    speciesId: null,
+  };
+}
+
+export async function createSpeciesFromProfile(profile: unknown) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const validated = SpeciesProfileSchema.parse(profile);
+
+  const species = await prisma.species.create({
+    data: {
+      commonName: validated.commonName,
+      scientificName: validated.scientificName || undefined,
+      aliases: validated.aliases,
+      waterNeed: validated.waterNeed,
+      intervalSpring: validated.intervals.spring,
+      intervalSummer: validated.intervals.summer,
+      intervalAutumn: validated.intervals.autumn,
+      intervalWinter: validated.intervals.winter,
+      minTemp: validated.minTemp,
+      lightPref: validated.lightPref,
+      humidityPref: validated.humidityPref,
+      winterRest: validated.winterRest,
+      care: validated.care,
+      source: "AI",
+      validated: false,
+    },
+  });
+
+  return species;
 }
