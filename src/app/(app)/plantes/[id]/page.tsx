@@ -11,6 +11,7 @@ import { getPlantIntervalExplanation } from "@/app/actions/watering";
 import { getSpecies } from "@/app/actions/species";
 import { getRooms } from "@/app/actions/rooms";
 import { PlantForm } from "@/components/PlantForm";
+import { PlantJournal } from "@/components/PlantJournal";
 import { Button } from "@/components/ui/button";
 import { PlantFormData } from "@/types/species";
 import { IntervalExplanation } from "@/lib/watering/interval";
@@ -204,6 +205,11 @@ export default function PlantPage({ params }: { params: { id: string } }) {
               </details>
             </div>
           )}
+        </div>
+
+        <div className="border-t pt-8 mb-8">
+          <h2 className="text-xl font-semibold mb-6">Journal</h2>
+          <PlantJournal plantId={plant.id} />
         </div>
 
         <div className="border-t pt-8">

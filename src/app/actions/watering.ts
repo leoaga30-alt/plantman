@@ -131,6 +131,60 @@ export async function markSkipped(plantId: string) {
   });
 }
 
+export async function addFertilizer(plantId: string, note: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  return prisma.careEvent.create({
+    data: {
+      plantId,
+      memberId: user.id,
+      type: "FERTILIZE",
+      note,
+    },
+  });
+}
+
+export async function addRepotting(plantId: string, note: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  return prisma.careEvent.create({
+    data: {
+      plantId,
+      memberId: user.id,
+      type: "REPOT",
+      note,
+    },
+  });
+}
+
+export interface CareEventItem {
+  id: string;
+  type: string;
+  at: Date;
+  note: string | null;
+  memberName: string;
+}
+
+export async function getPlantEvents(plantId: string): Promise<CareEventItem[]> {
+  await requireMember();
+
+  const events = await prisma.careEvent.findMany({
+    where: { plantId },
+    include: { member: true },
+    orderBy: { at: "desc" },
+  });
+
+  return events.map((event) => ({
+    id: event.id,
+    type: event.type,
+    at: event.at,
+    note: event.note,
+    memberName: event.member.name,
+  }));
+}
+
 export interface PlanningDay {
   date: Date;
   plants: PlantScheduleItem[];
