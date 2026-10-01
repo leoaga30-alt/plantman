@@ -606,13 +606,13 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 
 ### Phase 3 — Moteur d'arrosage & planning
 
-- [ ] `lib/watering` (6.1 → 6.6, 6.8) + tests (6.7, 6.8)
-- [ ] Écran « Aujourd'hui » : Arrosé ✓, Sol humide, Tout arrosé par pièce
-- [ ] Écran Planning 7 j / 4 semaines
-- [ ] Explication de l'intervalle sur la fiche plante
-- [ ] Journal : ajout manuel engrais / rempotage
+- [x] `lib/watering` (6.1 → 6.6, 6.8) + tests (6.7, 6.8)
+- [x] Écran « Aujourd'hui » : Arrosé ✓, Sol humide, Tout arrosé par pièce
+- [x] Écran Planning 7 j / 4 semaines
+- [x] Explication de l'intervalle sur la fiche plante
+- [x] Journal : ajout manuel engrais / rempotage
 
-✅ Tests verts ; marquer un arrosage retire la plante de la liste du jour et la replanifie correctement ; les autres membres le voient.
+✅ Tests verts ; marquer un arrosage retire la plante de la liste du jour et la replanifie correctement ; les autres membres le voient. Planning 7j/mois, journal avec labels accessibles, feedback d'erreur. Revue web-design-guidelines appliquée.
 
 ### Phase 4 — IA : fiches, conseils, import
 
