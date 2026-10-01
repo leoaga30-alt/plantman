@@ -576,7 +576,7 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 
 ### Phase 1 — Accès restreint
 
-- [ ] **[Leo]** Resend : domaine vérifié, SMTP custom dans Supabase Auth, inscriptions désactivées dans le dashboard Supabase
+- [x] **[Leo]** Resend : domaine vérifié, SMTP custom dans Supabase Auth, inscriptions désactivées dans le dashboard Supabase *(en attente validation DNS plantman.leoagapitos.com sur OVH)*
 - [ ] Login OTP, `shouldCreateUser: false`
 - [ ] Table `Member` + seed depuis `ALLOWED_EMAILS` (création des comptes Auth)
 - [ ] Garde serveur : middleware/proxy + `requireMember()`

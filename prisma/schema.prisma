@@ -11,4 +11,12 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-// Tables defined in phases 1+
+model Member {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  name        String
+  notifyDaily Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+// Additional tables defined in phases 2+
