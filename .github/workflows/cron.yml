@@ -10,5 +10,5 @@ jobs:
       - name: Trigger daily digest
         run: |
           curl -X GET \
-            -H "Authorization: Bearer ${{ secrets.sflkjhdsflshofhsdlmmhf;sflhfnflsk;fzs }}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
             https://arrosoir.vercel.app/api/cron/daily
