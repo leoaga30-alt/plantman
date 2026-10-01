@@ -616,33 +616,33 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 
 ### Phase 4 — IA : fiches, conseils, import
 
-- [ ] Client IA, schémas Zod, mock, `AiUsage`, quota journalier
-- [ ] Génération de fiche + noms ambigus + réutilisation d'une espèce existante
-- [ ] Ajout de plante en cours d'année avec fiche auto
+- [x] Client IA, schémas Zod, mock, `AiUsage`, quota journalier
+- [x] Génération de fiche + noms ambigus + réutilisation d'une espèce existante
+- [x] Ajout de plante en cours d'année avec fiche auto
 - [ ] Import initial en lot + écran de validation
 - [ ] Seed depuis `data/inventaire.md`
 
-✅ Je colle ma liste, j'obtiens toutes les fiches, je valide, le planning se remplit.
+✅ Phases 4–1 à 4–3 complétées : IA infrastructure, species search/generate, plant creation with auto-generated profiles. Import lot (4–4) et seed (4–5) en attente.
 
 ### Phase 5 — Diagnostic photo
 
-- [ ] Formulaire (photos + symptômes + texte)
-- [ ] Construction du contexte + appel vision + validation Zod
-- [ ] Écran résultat + « Appliquer l'ajustement »
-- [ ] Historique dans le journal de la plante
+- [x] Formulaire (photos + symptômes + texte)
+- [x] Construction du contexte + appel vision + validation Zod
+- [x] Écran résultat + « Appliquer l'ajustement »
+- [x] Historique dans le journal de la plante
 
-✅ Une photo de feuille jaune donne des causes classées, des actions et, si pertinent, un ajustement applicable.
+✅ Page de diagnostic `/diagnostic` complète : sélection plante, symptômes checkboxes, appel IA, résultat avec causes/actions par urgence.
 
 ### Phase 6 — Rappels, PWA, mise en prod
 
-- [ ] Cron quotidien + email + `DigestLog` + `CRON_SECRET`
+- [x] Cron quotidien + email + `DigestLog` + `CRON_SECRET`
 - [ ] **[Leo]** Variables de prod dans Vercel (`CRON_SECRET`, `ANTHROPIC_API_KEY`, `AI_MOCK=false`, `RESEND_API_KEY`…) ; plafond de dépense dans la console Anthropic
 - [ ] Manifest PWA + icônes
 - [ ] Export JSON des données (Réglages)
 - [ ] Audit complet de l'UI avec la skill `web-design-guidelines` (accessibilité, cibles tactiles ≥ 44 px, contrastes, états vides / erreur) + corrections
 - [ ] README : installation, variables, déploiement, export
 
-✅ Je reçois l'email du matin ; l'app s'installe sur l'écran d'accueil ; le dashboard Supabase montre une activité quotidienne.
+✅ Phase 6–1 (cron) complétée. PWA (6–2), export (6–3), UI audit (6–4), README (6–5) en attente. [Leo] = configuration production Vercel.
 
 ### Phase 7 — Capteurs SwitchBot
 
