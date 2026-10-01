@@ -82,36 +82,40 @@ export default function PlanningPage() {
           </p>
         </div>
 
-        <div className="mb-6 flex gap-3">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
           <div className="flex gap-2">
             <Button
               variant={viewMode === "week" ? "default" : "outline"}
               onClick={() => setViewMode("week")}
-              size="sm"
             >
               Semaine
             </Button>
             <Button
               variant={viewMode === "month" ? "default" : "outline"}
               onClick={() => setViewMode("month")}
-              size="sm"
             >
               Mois
             </Button>
           </div>
 
-          <select
-            value={selectedRoomId}
-            onChange={(e) => setSelectedRoomId(e.target.value)}
-            className="px-3 py-2 rounded-md border border-border bg-background text-sm"
-          >
-            <option value="all">Toutes les pièces</option>
-            {rooms.map((room) => (
-              <option key={room.id} value={room.id}>
-                {room.name}
-              </option>
-            ))}
-          </select>
+          <div className="flex flex-col gap-1">
+            <label htmlFor="room-filter" className="text-xs text-muted-foreground">
+              Filtre
+            </label>
+            <select
+              id="room-filter"
+              value={selectedRoomId}
+              onChange={(e) => setSelectedRoomId(e.target.value)}
+              className="px-3 py-2 rounded-md border border-border bg-background text-sm"
+            >
+              <option value="all">Toutes les pièces</option>
+              {rooms.map((room) => (
+                <option key={room.id} value={room.id}>
+                  {room.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         {totalPlants === 0 ? (

@@ -153,7 +153,7 @@ export default function PlantPage({ params }: { params: { id: string } }) {
                 <ul className="text-xs text-muted-foreground space-y-1 mb-2">
                   {explanation.factors.map((factor, idx) => (
                     <li key={idx}>
-                      × {factor.factor.toFixed(2)} ({factor.label})
+                      ×&nbsp;{factor.factor.toFixed(2)} ({factor.label})
                     </li>
                   ))}
                 </ul>

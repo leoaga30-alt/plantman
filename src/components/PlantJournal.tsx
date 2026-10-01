@@ -20,6 +20,7 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
   const [showRepottingForm, setShowRepottingForm] = useState(false);
   const [note, setNote] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -37,6 +38,7 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
   }, [plantId]);
 
   const handleFertilizer = async () => {
+    setError(null);
     setSubmitting(true);
     try {
       await addFertilizer(plantId, note);
@@ -45,6 +47,8 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
       setNote("");
       setShowFertilizerForm(false);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout";
+      setError(message);
       console.error("Failed to add fertilizer:", err);
     } finally {
       setSubmitting(false);
@@ -52,6 +56,7 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
   };
 
   const handleRepotting = async () => {
+    setError(null);
     setSubmitting(true);
     try {
       await addRepotting(plantId, note);
@@ -60,6 +65,8 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
       setNote("");
       setShowRepottingForm(false);
     } catch (err) {
+      const message = err instanceof Error ? err.message : "Erreur lors de l'ajout";
+      setError(message);
       console.error("Failed to add repotting:", err);
     } finally {
       setSubmitting(false);
@@ -92,16 +99,14 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         <Button
-          size="sm"
           variant="outline"
           onClick={() => setShowFertilizerForm(!showFertilizerForm)}
         >
           + Engrais
         </Button>
         <Button
-          size="sm"
           variant="outline"
           onClick={() => setShowRepottingForm(!showRepottingForm)}
         >
@@ -109,26 +114,35 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
         </Button>
       </div>
 
+      {error && (
+        <div className="p-3 bg-destructive/10 border border-destructive rounded-lg text-sm text-destructive">
+          {error}
+        </div>
+      )}
+
       {showFertilizerForm && (
-        <div className="p-4 border border-border rounded-lg space-y-2">
-          <p className="text-sm font-medium">Ajouter un engrais</p>
-          <input
-            type="text"
-            placeholder="Type d'engrais, dosage…"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-border text-sm"
-          />
+        <div className="p-4 border border-border rounded-lg space-y-3">
+          <div>
+            <label htmlFor="fertilizer-note" className="block text-sm font-medium mb-2">
+              Ajouter un engrais
+            </label>
+            <input
+              id="fertilizer-note"
+              type="text"
+              placeholder="Type d'engrais, dosage…"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full px-3 py-2 rounded-md border border-border text-sm"
+            />
+          </div>
           <div className="flex gap-2">
             <Button
-              size="sm"
               onClick={handleFertilizer}
               disabled={submitting}
             >
               Ajouter
             </Button>
             <Button
-              size="sm"
               variant="outline"
               onClick={() => setShowFertilizerForm(false)}
             >
@@ -139,25 +153,28 @@ export function PlantJournal({ plantId }: PlantJournalProps) {
       )}
 
       {showRepottingForm && (
-        <div className="p-4 border border-border rounded-lg space-y-2">
-          <p className="text-sm font-medium">Ajouter un rempotage</p>
-          <input
-            type="text"
-            placeholder="Nouveau pot, terreau…"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full px-3 py-2 rounded-md border border-border text-sm"
-          />
+        <div className="p-4 border border-border rounded-lg space-y-3">
+          <div>
+            <label htmlFor="repotting-note" className="block text-sm font-medium mb-2">
+              Ajouter un rempotage
+            </label>
+            <input
+              id="repotting-note"
+              type="text"
+              placeholder="Nouveau pot, terreau…"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full px-3 py-2 rounded-md border border-border text-sm"
+            />
+          </div>
           <div className="flex gap-2">
             <Button
-              size="sm"
               onClick={handleRepotting}
               disabled={submitting}
             >
               Ajouter
             </Button>
             <Button
-              size="sm"
               variant="outline"
               onClick={() => setShowRepottingForm(false)}
             >
