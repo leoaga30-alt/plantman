@@ -11,12 +11,219 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Member {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  name        String
-  notifyDaily Boolean  @default(true)
-  createdAt   DateTime @default(now())
+enum LightLevel {
+  LOW
+  MEDIUM
+  BRIGHT
+  DIRECT_SUN
 }
 
-// Additional tables defined in phases 2+
+enum Humidity {
+  DRY
+  NORMAL
+  HUMID
+}
+
+enum PotMaterial {
+  PLASTIC
+  TERRACOTTA
+  GLAZED_CERAMIC
+  OTHER
+}
+
+enum WaterNeed {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum CareType {
+  WATER
+  SKIP
+  FERTILIZE
+  REPOT
+}
+
+enum PhotoKind {
+  PROFILE
+  PROGRESS
+  DIAGNOSIS
+}
+
+enum Source {
+  AI
+  MANUAL
+}
+
+enum AiKind {
+  PROFILE
+  DIAGNOSIS
+}
+
+model Member {
+  id          String      @id @default(cuid())
+  email       String      @unique
+  name        String
+  notifyDaily Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  events      CareEvent[]
+  diagnoses   Diagnosis[]
+  aiUsage     AiUsage[]
+}
+
+model Room {
+  id         String     @id @default(cuid())
+  name       String     @unique
+  light      LightLevel @default(MEDIUM)
+  humidity   Humidity   @default(NORMAL)
+  tempSummer Float      @default(22)
+  tempWinter Float      @default(20)
+  nearHeater Boolean    @default(false)
+  notes      String?
+  plants     Plant[]
+  sensor     Sensor?
+}
+
+model Species {
+  id             String     @id @default(cuid())
+  commonName     String
+  scientificName String?    @unique
+  aliases        String[]
+  waterNeed      WaterNeed
+  intervalSpring Int
+  intervalSummer Int
+  intervalAutumn Int
+  intervalWinter Int
+  minTemp        Float?
+  lightPref      LightLevel
+  humidityPref   Humidity
+  winterRest     Boolean    @default(false)
+  care           Json
+  source         Source     @default(AI)
+  validated      Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+  plants         Plant[]
+}
+
+model Plant {
+  id               String      @id @default(cuid())
+  name             String
+  description      String?
+  speciesId        String
+  species          Species     @relation(fields: [speciesId], references: [id])
+  roomId           String
+  room             Room        @relation(fields: [roomId], references: [id])
+  potDiameterCm    Int?
+  potMaterial      PotMaterial @default(PLASTIC)
+  intervalAdjust   Float       @default(1.0)
+  intervalOverride Int?
+  acquiredAt       DateTime?
+  archivedAt       DateTime?
+  coverPhotoPath   String?
+  createdAt        DateTime    @default(now())
+  events           CareEvent[]
+  photos           Photo[]
+  diagnoses        Diagnosis[]
+}
+
+model CareEvent {
+  id       String   @id @default(cuid())
+  plantId  String
+  plant    Plant    @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  memberId String
+  member   Member   @relation(fields: [memberId], references: [id])
+  type     CareType
+  at       DateTime @default(now())
+  note     String?
+
+  @@index([plantId, at])
+}
+
+model Photo {
+  id          String     @id @default(cuid())
+  plantId     String
+  plant       Plant      @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  path        String
+  kind        PhotoKind
+  takenAt     DateTime   @default(now())
+  diagnosisId String?
+  diagnosis   Diagnosis? @relation(fields: [diagnosisId], references: [id], onDelete: SetNull)
+}
+
+model Diagnosis {
+  id              String    @id @default(cuid())
+  plantId         String
+  plant           Plant     @relation(fields: [plantId], references: [id], onDelete: Cascade)
+  memberId        String
+  member          Member    @relation(fields: [memberId], references: [id])
+  symptoms        String[]
+  description     String?
+  result          Json
+  suggestedAdjust Float?
+  appliedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  photos          Photo[]
+}
+
+model AiUsage {
+  id           String   @id @default(cuid())
+  memberId     String
+  member       Member   @relation(fields: [memberId], references: [id])
+  kind         AiKind
+  model        String
+  inputTokens  Int
+  outputTokens Int
+  createdAt    DateTime @default(now())
+}
+
+model DigestLog {
+  date   String   @id
+  sentAt DateTime @default(now())
+}
+
+// --- Sensors (phase 7) ---
+
+enum ReadingSource {
+  WEBHOOK
+  POLL
+}
+
+enum AlertKind {
+  COLD
+  HEAT
+}
+
+model Sensor {
+  id         String          @id @default(cuid())
+  provider   String          @default("switchbot")
+  externalId String          @unique
+  name       String
+  roomId     String?         @unique
+  room       Room?           @relation(fields: [roomId], references: [id])
+  battery    Int?
+  lastSeenAt DateTime?
+  readings   SensorReading[]
+}
+
+model SensorReading {
+  id          String        @id @default(cuid())
+  sensorId    String
+  sensor      Sensor        @relation(fields: [sensorId], references: [id], onDelete: Cascade)
+  at          DateTime
+  temperature Float
+  humidity    Float
+  source      ReadingSource
+
+  @@index([sensorId, at])
+}
+
+model AlertLog {
+  id     String    @id @default(cuid())
+  roomId String
+  kind   AlertKind
+  value  Float
+  sentAt DateTime  @default(now())
+
+  @@index([roomId, kind, sentAt])
+}
