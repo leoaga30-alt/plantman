@@ -2,7 +2,9 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { prisma } from "@/lib/db";
 
-export async function getSession() {
+// getUser() validates the JWT with Supabase Auth; getSession() only decodes the
+// cookie and would trust a forged one.
+export async function getAuthUser() {
   const cookieStore = await cookies();
 
   const supabase = createServerClient(
@@ -27,19 +29,19 @@ export async function getSession() {
   );
 
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  return session;
+  return user;
 }
 
 export async function getCurrentUser() {
-  const session = await getSession();
-  if (!session?.user) return null;
+  const user = await getAuthUser();
+  if (!user?.email) return null;
 
   const member = await prisma.member.findUnique({
-    where: { email: session.user.email! },
+    where: { email: user.email },
   });
 
-  return member ? { ...session.user, member } : null;
+  return member ? { ...user, member } : null;
 }

@@ -32,11 +32,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
+  // getUser() verifies the JWT server-side (getSession() would trust a forged cookie)
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
