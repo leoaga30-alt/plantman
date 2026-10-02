@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SpeciesProfileSchema, DiagnosisResultSchema, SpeciesProfile, DiagnosisResult } from "./schemas";
 import { getMockProfile, mockDiagnosisResult } from "./mock";
+import { parseJsonResponse } from "./json";
 
 const isMock = process.env.AI_MOCK === "true";
 
@@ -104,7 +105,7 @@ Contenu en français. Intervalles aux conditions de référence (20°C, lumière
 
   const response = await client.messages.create({
     model: MODEL_PROFILE,
-    max_tokens: 2000,
+    max_tokens: 4000,
     messages: [
       {
         role: "user",
@@ -113,12 +114,16 @@ Contenu en français. Intervalles aux conditions de référence (20°C, lumière
     ],
   });
 
+  if (response.stop_reason === "max_tokens") {
+    throw new Error("Réponse IA tronquée (max_tokens atteint)");
+  }
+
   const content = response.content[0];
   if (content.type !== "text") {
     throw new Error("Unexpected response type from Claude");
   }
 
-  const parsed = JSON.parse(content.text);
+  const parsed = parseJsonResponse(content.text);
   const validated = SpeciesProfileSchema.parse(parsed);
 
   return {
@@ -189,7 +194,7 @@ Contenu en français.`;
     throw new Error("Unexpected response type from Claude");
   }
 
-  const parsed = JSON.parse(content.text);
+  const parsed = parseJsonResponse(content.text);
   const validated = DiagnosisResultSchema.parse(parsed);
 
   return {

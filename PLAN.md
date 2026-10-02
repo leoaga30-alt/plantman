@@ -620,9 +620,9 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 - [x] Génération de fiche + noms ambigus + réutilisation d'une espèce existante
 - [x] Ajout de plante en cours d'année avec fiche auto
 - [ ] Import initial en lot + écran de validation
-- [ ] Seed depuis `data/inventaire.md`
+- [x] Seed depuis `data/inventaire.md` (5 pièces, 7 espèces générées par IA « à valider », 8 plantes ; idempotent, `--dry-run` disponible)
 
-✅ Phases 4–1 à 4–3 complétées : IA infrastructure, species search/generate, plant creation with auto-generated profiles. Import lot (4–4) et seed (4–5) en attente.
+✅ Phases 4–1 à 4–3 complétées : IA infrastructure, species search/generate, plant creation with auto-generated profiles. Seed (4–5) fait ; import en lot (4–4) en attente.
 
 ### Phase 5 — Diagnostic photo
 
