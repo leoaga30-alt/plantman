@@ -17,12 +17,11 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const redirectUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
       const { error } = await supabase.auth.signInWithOtp({
         email,
         options: {
           shouldCreateUser: false,
-          emailRedirectTo: `${redirectUrl}/`,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
