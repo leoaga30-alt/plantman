@@ -48,7 +48,7 @@ export async function generateSpeciesProfile(commonName: string) {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
-  const hasQuota = await checkDailyQuota(user.id);
+  const hasQuota = await checkDailyQuota(user.member.id);
   if (!hasQuota) {
     throw new Error(`Quota atteint (${DAILY_LIMIT} appels/jour)`);
   }
@@ -57,7 +57,7 @@ export async function generateSpeciesProfile(commonName: string) {
     const { profile, tokensUsed } = await generateProfile(commonName);
 
     await logAiUsage(
-      user.id,
+      user.member.id,
       "PROFILE",
       process.env.AI_MODEL_PROFILE || "claude-haiku-4-5-20251001",
       tokensUsed.input,
@@ -82,7 +82,7 @@ export async function generateDiagnosis(input: {
   const user = await getCurrentUser();
   if (!user) throw new Error("Unauthorized");
 
-  const hasQuota = await checkDailyQuota(user.id);
+  const hasQuota = await checkDailyQuota(user.member.id);
   if (!hasQuota) {
     throw new Error(`Quota atteint (${DAILY_LIMIT} appels/jour)`);
   }
@@ -113,7 +113,7 @@ Historique: ${recentEvents.map((e) => `${e.type} le ${e.at.toLocaleDateString("f
     );
 
     await logAiUsage(
-      user.id,
+      user.member.id,
       "DIAGNOSIS",
       process.env.AI_MODEL_DIAGNOSIS || "claude-haiku-4-5-20251001",
       tokensUsed.input,
@@ -139,7 +139,7 @@ export async function getRemainingQuota() {
 
   const used = await prisma.aiUsage.count({
     where: {
-      memberId: user.id,
+      memberId: user.member.id,
       createdAt: { gte: today },
     },
   });

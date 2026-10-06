@@ -4,11 +4,12 @@ import { getSpeciesById, updateSpecies, deleteSpecies } from "@/app/actions/spec
 import { SpeciesForm } from "@/components/SpeciesForm";
 import { Button } from "@/components/ui/button";
 import { SpeciesFormData } from "@/types/species";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Species } from "@prisma/client";
 
-export default function SpeciesPage({ params }: { params: { id: string } }) {
+export default function SpeciesPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [species, setSpecies] = useState<Species | null>(null);
   const [loading, setLoading] = useState(true);
@@ -17,7 +18,7 @@ export default function SpeciesPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const loadSpecies = async () => {
       try {
-        const data = await getSpeciesById(params.id);
+        const data = await getSpeciesById(id);
         setSpecies(data);
       } catch (err) {
         console.error("Failed to load species:", err);
@@ -28,10 +29,10 @@ export default function SpeciesPage({ params }: { params: { id: string } }) {
     };
 
     loadSpecies();
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleSubmit = async (data: SpeciesFormData) => {
-    await updateSpecies(params.id, data);
+    await updateSpecies(id, data);
     router.push("/especes");
   };
 
@@ -44,7 +45,7 @@ export default function SpeciesPage({ params }: { params: { id: string } }) {
 
     setDeleting(true);
     try {
-      await deleteSpecies(params.id);
+      await deleteSpecies(id);
       router.push("/especes");
     } catch (err) {
       alert((err as Error).message);

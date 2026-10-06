@@ -3,11 +3,12 @@
 import { getRoom, updateRoom, deleteRoom } from "@/app/actions/rooms";
 import { RoomForm } from "@/components/RoomForm";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Room } from "@prisma/client";
 
-export default function RoomPage({ params }: { params: { id: string } }) {
+export default function RoomPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,7 +17,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const loadRoom = async () => {
       try {
-        const data = await getRoom(params.id);
+        const data = await getRoom(id);
         setRoom(data);
       } catch (err) {
         console.error("Failed to load room:", err);
@@ -27,7 +28,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     };
 
     loadRoom();
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleSubmit = async (data: {
     name: string;
@@ -38,7 +39,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
     nearHeater: boolean;
     notes?: string;
   }) => {
-    await updateRoom(params.id, data);
+    await updateRoom(id, data);
     router.push("/pieces");
   };
 
@@ -51,7 +52,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
 
     setDeleting(true);
     try {
-      await deleteRoom(params.id);
+      await deleteRoom(id);
       router.push("/pieces");
     } catch (err) {
       console.error("Failed to delete room:", err);

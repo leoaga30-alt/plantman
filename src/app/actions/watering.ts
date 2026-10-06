@@ -111,7 +111,7 @@ export async function markWatered(plantId: string) {
   return prisma.careEvent.create({
     data: {
       plantId,
-      memberId: user.id,
+      memberId: user.member.id,
       type: "WATER",
     },
   });
@@ -124,7 +124,7 @@ export async function markSkipped(plantId: string) {
   return prisma.careEvent.create({
     data: {
       plantId,
-      memberId: user.id,
+      memberId: user.member.id,
       type: "SKIP",
       note: "Sol encore humide",
     },
@@ -138,7 +138,7 @@ export async function addFertilizer(plantId: string, note: string) {
   return prisma.careEvent.create({
     data: {
       plantId,
-      memberId: user.id,
+      memberId: user.member.id,
       type: "FERTILIZE",
       note,
     },
@@ -152,7 +152,7 @@ export async function addRepotting(plantId: string, note: string) {
   return prisma.careEvent.create({
     data: {
       plantId,
-      memberId: user.id,
+      memberId: user.member.id,
       type: "REPOT",
       note,
     },

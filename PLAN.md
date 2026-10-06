@@ -136,7 +136,7 @@ Non-objectifs : capteurs connectés, multi-foyers, inscription publique, app nat
 |---|---|---|
 | Front + back | Next.js (App Router, TypeScript strict), Server Actions | un seul projet, déploiement simple |
 | UI | Tailwind + shadcn/ui, lucide-react, thème tiré de `DESIGN.md` | rapide, propre, mobile, cohérent |
-| Hébergement | Vercel Hobby (gratuit, usage perso non commercial) | déploiement Git, cron intégré |
+| Hébergement | **Railway** (crédit gratuit mensuel de 5 $) — remplace Vercel Hobby, qui bloquait le dépôt privé | déploiement Git automatique sur `main` ; pas de cron intégré |
 | Base de données | Supabase Free — Postgres | 500 Mo, largement assez |
 | Auth | Supabase Auth — code OTP par email | pas de mot de passe, fonctionne en PWA |
 | Photos | Supabase Storage — bucket **privé** | 1 Go inclus |
@@ -154,7 +154,8 @@ Non-objectifs : capteurs connectés, multi-foyers, inscription publique, app nat
 
 - **Supabase met en pause un projet gratuit après 7 jours sans activité.** → le cron quotidien (F8) fait des requêtes en base tous les jours, ce qui garde le projet actif. Ne jamais le supprimer, même si les emails sont désactivés.
 - **Supabase Free n'a pas de sauvegardes** → bouton d'export JSON (phase 6).
-- **Cron Vercel Hobby : 1 exécution/jour max**, déclenchée à un moment quelconque dans l'heure prévue, en UTC. → un seul job `0 5 * * *` (≈ 6–7 h à Bruxelles), idempotent (un appel peut être raté ou doublé).
+- **Pas de cron intégré sur Railway** (Vercel n'est plus utilisé) → un planificateur Railway appelle `/api/cron/daily` avec `Authorization: Bearer $CRON_SECRET`, 1 fois par jour (≈ 5 h UTC), idempotent (un appel peut être raté ou doublé).
+- **Supabase : l'hôte direct `db.<ref>.supabase.co` est IPv6 uniquement ; Railway sort en IPv4.** → `DATABASE_URL` (app) = pooler transaction `aws-1-eu-west-1.pooler.supabase.com:6543` avec `?pgbouncer=true&connection_limit=5` (user `postgres.<ref>`) ; `DIRECT_URL` (migrations, depuis un poste IPv6) = hôte direct. Sans ça, toutes les pages sont vides.
 - **Stockage 1 Go** → compression des photos côté navigateur (WebP, 1600 px max, ~200–300 Ko) ≈ plusieurs milliers de photos.
 - **Taille des requêtes vers les fonctions Vercel limitée (~4,5 Mo)** → les photos partent **directement du navigateur vers Supabase Storage** via une URL d'upload signée, jamais via une Server Action.
 - **Le SMTP par défaut de Supabase est réservé aux tests** → configurer Resend comme SMTP custom dès la phase 1. Resend exige un domaine vérifié pour écrire à d'autres adresses que la tienne → utiliser un sous-domaine perso (ex. `plantes.mondomaine.be`). Fallback : SMTP Gmail avec mot de passe d'application.
@@ -566,13 +567,13 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 - [x] **[Leo]** Passer Claude Code sur le cloud (0.8) : retirer de `settings.json` le routage LM Studio, choisir Haiku 4.5 dans le sélecteur de modèle, fixer un plafond de dépense dans la console Anthropic si Claude Code est facturé à l'API
 - [x] Init Next.js (TS strict, ESLint, Prettier), Tailwind, shadcn/ui
 - [x] Vitest ; scripts `lint`, `typecheck`, `test`, `build`, `db:migrate`, `db:seed` ; `.env.example` (section 12)
-- [ ] **[Leo]** Créer le projet Supabase (région UE) et renseigner `.env.local` (URLs de base, clés)
+- [x] **[Leo]** Créer le projet Supabase (région UE) et renseigner `.env.local` (URLs de base, clés)
 - [x] Prisma + connexion Supabase (URL poolée / directe), première migration
 - [x] Outillage (0.7) : `.mcp.json` findskills, `AGENTS.md` Vercel, skill `web-design-guidelines`
 - [x] **[Leo + Claude]** Choix du `DESIGN.md` ; puis copie à la racine, adaptation, tokens traduits en variables CSS shadcn + thème Tailwind, page `/design` de démonstration (couleurs, typo, boutons, cartes, champs)
-- [x] **[Leo]** Dépôt GitHub privé connecté à Vercel, variables d'environnement dans Vercel, premier déploiement
+- [x] **[Leo]** Dépôt GitHub privé, variables d'environnement et premier déploiement sur **Railway** (auto-déploiement à chaque push sur `main`)
 
-✅ L'URL Vercel répond, la migration est appliquée sur Supabase, `/design` reflète le thème, `claude mcp list` affiche findskills.
+✅ L'URL Railway répond (https://plantman-production.up.railway.app), la migration est appliquée sur Supabase, `/design` reflète le thème, `claude mcp list` affiche findskills.
 
 ### Phase 1 — Accès restreint
 
@@ -585,29 +586,27 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 ✅ Critère : Email autorisé reçoit lien magique, non-autorisé ne reçoit rien, API REST verrouillée.
 
 **Complété :**
-- Login page envoie magic links (Resend SMTP confirmé ✓)
-- Emails reçus correctement
-- Member table + seed fonctionnels
-- Middleware protège `/` sauf `/login`, `/design`
-- RLS ON (no policies = API REST blocked)
-- AuthHandler detect session + redirect to `/` (déploiement Vercel will fix magic link cross-domain cookies)
-- Lint ✓, typecheck ✓, test ✓, build ✓
-
-**Note:** Magic link redirect to / works in prod (Vercel), dev localhost has cross-domain cookie issue (known Supabase limitation).
+- Login par lien magique (SMTP Resend). Session en **cookies** (`@supabase/ssr`, PKCE) ; route `/auth/callback` qui accepte `code` (PKCE) ou `token_hash` (marche d'un appareil à l'autre) ; `emailRedirectTo` = `window.location.origin`, aucune URL en dur.
+- Middleware + `requireMember()` ; session vérifiée par `getUser()` (JWT validé auprès de Supabase, un cookie forgé est refusé).
+- RLS activé sans policy sur les 12 tables (API REST anonyme vide) ; inscriptions Supabase désactivées.
+- Config Supabase à garder : Site URL = URL Railway ; Redirect URLs `https://…railway.app/**` et `http://localhost:3000/**` ; template Magic Link `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (à documenter dans le README, 6-5).
 
 ### Phase 2 — Pièces, espèces, plantes (saisie manuelle)
 
-- [ ] CRUD pièces
-- [ ] CRUD espèces (formulaire manuel, CareSheet éditable)
-- [ ] CRUD plantes + archivage
+- [x] CRUD pièces
+- [x] CRUD espèces (formulaire manuel, CareSheet éditable)
+- [x] CRUD plantes + archivage
 - [ ] Upload photo : compression navigateur → URL signée → bucket privé → ligne `Photo`
 
 ✅ Je crée une pièce, une espèce et une plante avec photo depuis mon téléphone.
 
+Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des routes `[id]` étaient `undefined`) → **à valider par Leo en prod**. Reste l'upload photo.
+
 ### Phase 3 — Moteur d'arrosage & planning
 
 - [x] `lib/watering` (6.1 → 6.6, 6.8) + tests (6.7, 6.8)
-- [x] Écran « Aujourd'hui » : Arrosé ✓, Sol humide, Tout arrosé par pièce
+- [x] Écran « Aujourd'hui » : Arrosé ✓ et « Sol humide » (bouton +2 j → événement SKIP), liste par pièce
+- [ ] Écran « Aujourd'hui » : bouton « Tout arrosé » par pièce
 - [x] Écran Planning 7 j / 4 semaines
 - [x] Explication de l'intervalle sur la fiche plante
 - [x] Journal : ajout manuel engrais / rempotage
@@ -626,27 +625,38 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 
 ### Phase 5 — Diagnostic photo
 
-- [x] Formulaire (photos + symptômes + texte)
-- [x] Construction du contexte + appel vision + validation Zod
-- [x] Écran résultat + « Appliquer l'ajustement »
-- [x] Historique dans le journal de la plante
+- [x] Formulaire (symptômes + texte)
+- [ ] Photos dans le formulaire (dépend de l'upload photo, phase 2)
+- [x] Construction du contexte + appel IA (texte) + validation Zod
+- [ ] Appel vision (envoi des photos à l'API) ; relever `max_tokens` du diagnostic (1500, risque de troncature)
+- [x] Écran résultat (urgence, causes, actions)
+- [ ] Enregistrer le `Diagnosis` + « Appliquer l'ajustement » (`intervalAdjust`)
+- [ ] Historique des diagnostics dans le journal de la plante
 
-✅ Page de diagnostic `/diagnostic` complète : sélection plante, symptômes checkboxes, appel IA, résultat avec causes/actions par urgence.
+✅ Critère non atteint : `/diagnostic` fonctionne en texte seul (sélection plante, symptômes, appel IA, résultat). Manquent : photos/vision, enregistrement, ajustement, historique.
 
 ### Phase 6 — Rappels, PWA, mise en prod
 
-- [x] Cron quotidien + email + `DigestLog` + `CRON_SECRET`
-- [ ] **[Leo]** Variables de prod dans Vercel (`CRON_SECRET`, `ANTHROPIC_API_KEY`, `AI_MOCK=false`, `RESEND_API_KEY`…) ; plafond de dépense dans la console Anthropic
+- [x] Navigation : barre d'onglets en bas sur mobile, barre haute dès `md` (`AppNav`)
+- [x] Mise en prod sur Railway (auto-déploiement GitHub, pooler Supabase IPv4) — remplace Vercel
+- [x] Route `/api/cron/daily` + `DigestLog` + `CRON_SECRET` (squelette)
+- [ ] Cron : route accessible sans session (le middleware la redirige vers `/login`), protégée par `CRON_SECRET`
+- [ ] Cron : envoi du digest par email (installer Resend ; l'envoi est en commentaire dans la route)
+- [ ] Cron : planificateur Railway, 1×/jour (sert aussi d'anti-pause Supabase)
+- [x] **[Leo]** Variables de prod sur Railway (`CRON_SECRET`, `ANTHROPIC_API_KEY`, `AI_MOCK=false`, `RESEND_API_KEY`…)
+- [ ] **[Leo]** Plafond de dépense dans la console Anthropic
 - [ ] Manifest PWA + icônes
-- [ ] Export JSON des données (Réglages)
+- [ ] Export JSON des données (page Réglages à créer)
 - [ ] Audit complet de l'UI avec la skill `web-design-guidelines` (accessibilité, cibles tactiles ≥ 44 px, contrastes, états vides / erreur) + corrections
-- [ ] README : installation, variables, déploiement, export
+- [ ] README : installation, variables, déploiement Railway, config Supabase (URLs, template email, pooler), export
 
-✅ Phase 6–1 (cron) complétée. PWA (6–2), export (6–3), UI audit (6–4), README (6–5) en attente. [Leo] = configuration production Vercel.
+✅ Fait : navigation, mise en prod Railway. À faire : cron (accès, email, planificateur), PWA, export, audit UI, README.
+
+Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000).
 
 ### Phase 7 — Capteurs SwitchBot
 
-- [ ] **[Leo]** Prérequis SwitchBot (16.1) ; `SWITCHBOT_TOKEN`, `SWITCHBOT_SECRET`, `SENSOR_WEBHOOK_SECRET` dans `.env.local` et Vercel
+- [ ] **[Leo]** Prérequis SwitchBot (16.1) ; `SWITCHBOT_TOKEN`, `SWITCHBOT_SECRET`, `SENSOR_WEBHOOK_SECRET` dans `.env.local` et Railway
 - [ ] Modèles `Sensor`, `SensorReading`, `AlertLog` + migration
 - [ ] Client API v1.1 : signature (testée), liste des Meter, statut
 - [ ] Réglages › Capteurs : association capteur ↔ pièce, bouton « Activer le webhook »

@@ -15,11 +15,12 @@ import { PlantJournal } from "@/components/PlantJournal";
 import { Button } from "@/components/ui/button";
 import { PlantFormData } from "@/types/species";
 import { IntervalExplanation } from "@/lib/watering/interval";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Plant, Species, Room } from "@prisma/client";
 
-export default function PlantPage({ params }: { params: { id: string } }) {
+export default function PlantPage() {
+  const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [plant, setPlant] = useState<(Plant & { species?: Species; room?: Room }) | null>(null);
   const [species, setSpecies] = useState<Species[]>([]);
@@ -32,7 +33,7 @@ export default function PlantPage({ params }: { params: { id: string } }) {
     const loadData = async () => {
       try {
         const [plantData, speciesData, roomsData] = await Promise.all([
-          getPlantById(params.id),
+          getPlantById(id),
           getSpecies(),
           getRooms(),
         ]);
@@ -40,7 +41,7 @@ export default function PlantPage({ params }: { params: { id: string } }) {
         setSpecies(speciesData);
         setRooms(roomsData);
 
-        const explanation = await getPlantIntervalExplanation(params.id);
+        const explanation = await getPlantIntervalExplanation(id);
         setExplanation(explanation);
       } catch (err) {
         console.error("Failed to load plant:", err);
@@ -51,19 +52,19 @@ export default function PlantPage({ params }: { params: { id: string } }) {
     };
 
     loadData();
-  }, [params.id, router]);
+  }, [id, router]);
 
   const handleSubmit = async (data: PlantFormData) => {
-    await updatePlant(params.id, data);
+    await updatePlant(id, data);
     router.push("/plantes");
   };
 
   const handleArchive = async () => {
     try {
       if (plant?.archivedAt) {
-        await unarchivePlant(params.id);
+        await unarchivePlant(id);
       } else {
-        await archivePlant(params.id);
+        await archivePlant(id);
       }
       router.push("/plantes");
     } catch (err) {
@@ -78,7 +79,7 @@ export default function PlantPage({ params }: { params: { id: string } }) {
 
     setDeleting(true);
     try {
-      await deletePlant(params.id);
+      await deletePlant(id);
       router.push("/plantes");
     } catch (err) {
       console.error("Failed to delete plant:", err);
