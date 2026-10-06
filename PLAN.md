@@ -596,18 +596,20 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 - [x] CRUD pièces
 - [x] CRUD espèces (formulaire manuel, CareSheet éditable)
 - [x] CRUD plantes + archivage
-- [ ] Upload photo : compression navigateur → URL signée → bucket privé → ligne `Photo`
+- [x] Upload photo : compression navigateur (WebP, JPEG sur Safari, 1600 px) → URL signée → bucket privé `arrosoir` → ligne `Photo` ; photo affichée dans Aujourd'hui, Plantes, Planning (URLs de lecture signées)
+- [x] Libellés français pour les valeurs enregistrées (arrosage, lumière, humidité, urgence) : listes espèces, pièces, diagnostic
 
 ✅ Je crée une pièce, une espèce et une plante avec photo depuis mon téléphone.
 
-Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des routes `[id]` étaient `undefined`) → **à valider par Leo en prod**. Reste l'upload photo.
+Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des routes `[id]` étaient `undefined`) → **à valider par Leo en prod**. Upload photo ajouté le 6 oct. (ajout depuis la fiche plante ; une nouvelle plante ouvre sa fiche pour y mettre la photo) → **à valider par Leo sur téléphone**.
 
 ### Phase 3 — Moteur d'arrosage & planning
 
-- [x] `lib/watering` (6.1 → 6.6, 6.8) + tests (6.7, 6.8)
+- [x] `lib/watering` : saisons (6.1, ancrages corrigés), température de la pièce (6.2), facteurs (6.3), prochaine date avec SKIP (6.4), explication (6.5), repos hivernal (6.8), prévision récurrente (`forecast.ts`) + tests (6.7)
+- [ ] `lib/watering` : apprentissage léger (6.6, bannière) et alerte froid (6.8)
 - [x] Écran « Aujourd'hui » : Arrosé ✓ et « Sol humide » (bouton +2 j → événement SKIP), liste par pièce
 - [ ] Écran « Aujourd'hui » : bouton « Tout arrosé » par pièce
-- [x] Écran Planning 7 j / 4 semaines
+- [x] Écran Planning : semaine (liste) et mois (calendrier avec points sur les jours d'arrosage, détail du jour sélectionné), filtre par pièce, dates en heure belge (`lib/dates`)
 - [x] Explication de l'intervalle sur la fiche plante
 - [x] Journal : ajout manuel engrais / rempotage
 
@@ -645,6 +647,7 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 - [ ] Cron : planificateur Railway, 1×/jour (sert aussi d'anti-pause Supabase)
 - [x] **[Leo]** Variables de prod sur Railway (`CRON_SECRET`, `ANTHROPIC_API_KEY`, `AI_MOCK=false`, `RESEND_API_KEY`…)
 - [ ] **[Leo]** Plafond de dépense dans la console Anthropic
+- [ ] **Design** : validation de la proposition sur `/design` (audit + palette « jardin vivant » + écrans comparés), puis application dans l'app (thème, tailles ≥ 44 px, cartes, Aujourd'hui) — en attente de Leo
 - [ ] Manifest PWA + icônes
 - [ ] Export JSON des données (page Réglages à créer)
 - [ ] Audit complet de l'UI avec la skill `web-design-guidelines` (accessibilité, cibles tactiles ≥ 44 px, contrastes, états vides / erreur) + corrections
@@ -652,7 +655,7 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 
 ✅ Fait : navigation, mise en prod Railway. À faire : cron (accès, email, planificateur), PWA, export, audit UI, README.
 
-Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000).
+Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000) ; police jamais chargée (`--font-sans` se référençait lui-même → l'app s'affichait en Times) ; ancrages saisonniers du moteur décalés d'un mois ; bouton `+2j` (SKIP) sans effet sur le planning ; seed d'inventaire qui recréait des pièces/plantes renommées (désormais chargement initial uniquement, `--force-inventory` pour compléter).
 
 ### Phase 7 — Capteurs SwitchBot
 

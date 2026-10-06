@@ -1,5 +1,6 @@
 "use client";
 
+import { LEVEL_LABEL, label } from "@/lib/labels";
 import { getPlants } from "@/app/actions/plants";
 import { generateDiagnosis } from "@/app/actions/ai";
 import { Button } from "@/components/ui/button";
@@ -156,10 +157,10 @@ export default function DiagnosticPage() {
               <p className="font-medium">{result.summary}</p>
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>
-                  Confiance: <strong>{result.confidence}</strong>
+                  Confiance : <strong>{label(LEVEL_LABEL, result.confidence)}</strong>
                 </p>
                 <p>
-                  Urgence: <strong>{result.urgency}</strong>
+                  Urgence : <strong>{label(LEVEL_LABEL, result.urgency)}</strong>
                 </p>
               </div>
             </div>

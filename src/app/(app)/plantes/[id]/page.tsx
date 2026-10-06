@@ -12,6 +12,7 @@ import { getSpecies } from "@/app/actions/species";
 import { getRooms } from "@/app/actions/rooms";
 import { PlantForm } from "@/components/PlantForm";
 import { PlantJournal } from "@/components/PlantJournal";
+import { PlantPhoto } from "@/components/PlantPhoto";
 import { Button } from "@/components/ui/button";
 import { PlantFormData } from "@/types/species";
 import { IntervalExplanation } from "@/lib/watering/interval";
@@ -22,7 +23,7 @@ import { Plant, Species, Room } from "@prisma/client";
 export default function PlantPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const [plant, setPlant] = useState<(Plant & { species?: Species; room?: Room }) | null>(null);
+  const [plant, setPlant] = useState<(Plant & { species?: Species; room?: Room; coverPhotoUrl?: string | null }) | null>(null);
   const [species, setSpecies] = useState<Species[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [explanation, setExplanation] = useState<IntervalExplanation | null>(null);
@@ -125,6 +126,14 @@ export default function PlantPage() {
               {deleting ? "Suppression..." : "Supprimer"}
             </Button>
           </div>
+        </div>
+
+        <div className="mb-8">
+          <PlantPhoto
+            plantId={plant.id}
+            plantName={plant.name}
+            initialUrl={plant.coverPhotoUrl ?? null}
+          />
         </div>
 
         <div className="mb-8">

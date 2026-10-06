@@ -8,6 +8,35 @@ const prisma = new PrismaClient();
 
 const dryRun = process.argv.includes("--dry-run");
 
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SECRET_KEY!
+  );
+}
+
+// Private bucket for plant photos (compressed client-side to WebP, or JPEG on Safari).
+async function seedStorage() {
+  const name = process.env.SUPABASE_BUCKET || "arrosoir";
+  const supabase = adminClient();
+
+  const { data: buckets, error } = await supabase.storage.listBuckets();
+  if (error) throw new Error(`Storage error: ${error.message}`);
+
+  if (buckets.some((b) => b.name === name)) {
+    console.log(`✓ Bucket "${name}" already exists`);
+    return;
+  }
+
+  const { error: createError } = await supabase.storage.createBucket(name, {
+    public: false,
+    fileSizeLimit: 5 * 1024 * 1024,
+    allowedMimeTypes: ["image/webp", "image/jpeg"],
+  });
+  if (createError) throw new Error(`Storage error: ${createError.message}`);
+  console.log(`✓ Bucket "${name}" created (private, 5 MB max)`);
+}
+
 async function seedMembers() {
   const allowedEmails = (process.env.ALLOWED_EMAILS || "")
     .split(",")
@@ -19,10 +48,7 @@ async function seedMembers() {
     return;
   }
 
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SECRET_KEY!
-  );
+  const supabase = adminClient();
 
   console.log(`Creating ${allowedEmails.length} members…`);
 
@@ -166,8 +192,9 @@ async function seedInventory(inventory: Inventory) {
       continue;
     }
 
+    // By name only: a plant moved to another room in the app is still "already there".
     const existing = await prisma.plant.findFirst({
-      where: { name: plant.name, roomId },
+      where: { name: plant.name },
     });
     if (existing) {
       skipped++;
@@ -197,6 +224,21 @@ async function seedInventory(inventory: Inventory) {
   }
 }
 
+// The inventory is the initial load. Once plants exist the data belongs to the app
+// (rooms renamed, plants moved…) and re-seeding would create duplicates.
+async function shouldSeedInventory(): Promise<boolean> {
+  if (process.argv.includes("--force-inventory")) return true;
+
+  const existing = await prisma.plant.count();
+  if (existing > 0) {
+    console.log(
+      `✓ ${existing} plants already in DB, inventory skipped (--force-inventory to complete a partial run)`
+    );
+    return false;
+  }
+  return true;
+}
+
 async function main() {
   // Parse first: an invalid inventory must stop everything before any write.
   const inventory = loadInventory();
@@ -207,7 +249,8 @@ async function main() {
   }
 
   await seedMembers();
-  if (inventory) await seedInventory(inventory);
+  await seedStorage();
+  if (inventory && (await shouldSeedInventory())) await seedInventory(inventory);
 
   console.log(process.exitCode ? "Seed finished with errors" : "✓ Seed complete");
 }

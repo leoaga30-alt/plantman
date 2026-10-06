@@ -45,5 +45,4 @@ export interface PlantFormData {
   potDiameterCm?: number;
   potMaterial: "PLASTIC" | "TERRACOTTA" | "GLAZED_CERAMIC" | "OTHER";
   acquiredAt?: string;
-  coverPhotoPath?: string;
 }

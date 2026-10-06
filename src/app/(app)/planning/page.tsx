@@ -1,98 +1,179 @@
 "use client";
 
-import { getPlanningPlants, PlanningDay } from "@/app/actions/watering";
+import { getWateringForecast, type ForecastItem } from "@/app/actions/watering";
 import { getRooms } from "@/app/actions/rooms";
 import { Button } from "@/components/ui/button";
+import { MonthCalendar, type DayMarker } from "@/components/MonthCalendar";
+import { PlantThumb } from "@/components/PlantThumb";
+import {
+  addDays,
+  formatDayLong,
+  monthGrid,
+  monthOf,
+  shiftMonth,
+  todayKey,
+  type DayKey,
+} from "@/lib/dates";
 import { Room } from "@prisma/client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type ViewMode = "week" | "month";
 
-export default function PlanningPage() {
-  const [planning, setPlanning] = useState<PlanningDay[]>([]);
-  const [rooms, setRooms] = useState<Room[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
-  const [selectedRoomId, setSelectedRoomId] = useState<string>("all");
+const WEEK_DAYS = 7;
 
-  const daysAhead = viewMode === "week" ? 7 : 28;
+function dayTitle(day: DayKey, today: DayKey): string {
+  if (day === today) return "Aujourd'hui";
+  if (day === addDays(today, 1)) return "Demain";
+  return formatDayLong(day);
+}
+
+function PlantRow({ item }: { item: ForecastItem }) {
+  return (
+    <Link
+      href={`/plantes/${item.plantId}`}
+      className="block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      <div className="flex items-center gap-3 rounded-lg border border-border p-3 transition-colors hover:bg-muted">
+        <PlantThumb url={item.coverPhotoUrl} className="size-12 shrink-0 rounded-lg" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">{item.plantName}</p>
+          <p className="truncate text-xs text-muted-foreground">
+            {item.speciesName} • {item.roomName}
+          </p>
+        </div>
+        {item.overdueDays > 0 && (
+          <span className="shrink-0 rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-medium text-destructive">
+            {item.overdueDays} j de retard
+          </span>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+export default function PlanningPage() {
+  const [today] = useState<DayKey>(() => todayKey());
+  const [viewMode, setViewMode] = useState<ViewMode>("month");
+  const [selectedRoomId, setSelectedRoomId] = useState("all");
+  const [cursor, setCursor] = useState(() => monthOf(todayKey()));
+  const [selected, setSelected] = useState<DayKey>(today);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [result, setResult] = useState<{
+    key: string;
+    days: Record<DayKey, ForecastItem[]>;
+    failed: boolean;
+  } | null>(null);
+
+  // Range to load: the 7 coming days, or the whole calendar grid (leading/trailing days included).
+  const range = useMemo(() => {
+    if (viewMode === "week") return { from: today, to: addDays(today, WEEK_DAYS - 1) };
+    const { from, to } = monthGrid(cursor.year, cursor.month);
+    return { from, to };
+  }, [viewMode, today, cursor]);
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const [planningData, roomsData] = await Promise.all([
-          getPlanningPlants(
-            daysAhead,
-            selectedRoomId !== "all" ? selectedRoomId : undefined
-          ),
-          getRooms(),
-        ]);
-        setPlanning(planningData);
-        setRooms(roomsData);
-      } catch (err) {
+    getRooms()
+      .then(setRooms)
+      .catch((err) => console.error("Failed to load rooms:", err));
+  }, []);
+
+  // Loading is derived from the request key: no stale dots from another month while fetching.
+  const requestKey = `${range.from}|${range.to}|${selectedRoomId}`;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    getWateringForecast(range.from, range.to, selectedRoomId !== "all" ? selectedRoomId : undefined)
+      .then((forecast) => {
+        if (!cancelled) setResult({ key: requestKey, days: forecast.days, failed: false });
+      })
+      .catch((err) => {
         console.error("Failed to load planning:", err);
-      } finally {
-        setLoading(false);
-      }
+        if (!cancelled) setResult({ key: requestKey, days: {}, failed: true });
+      });
+
+    return () => {
+      cancelled = true;
     };
+  }, [range, selectedRoomId, requestKey]);
 
-    loadData();
-  }, [daysAhead, selectedRoomId]);
+  const loading = result?.key !== requestKey;
+  const days = useMemo(() => (loading ? {} : (result?.days ?? {})), [loading, result]);
+  const failed = !loading && Boolean(result?.failed);
 
-  const totalPlants = planning.reduce((sum, day) => sum + day.plants.length, 0);
-
-  const formatDate = (date: Date): string => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (date.getTime() === today.getTime()) {
-      return "Aujourd'hui";
+  const markers = useMemo(() => {
+    const result: Record<DayKey, DayMarker> = {};
+    for (const [day, items] of Object.entries(days)) {
+      result[day] = { count: items.length, overdue: items.some((i) => i.overdueDays > 0) };
     }
+    return result;
+  }, [days]);
 
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    if (date.getTime() === tomorrow.getTime()) {
-      return "Demain";
-    }
-
-    return date.toLocaleDateString("fr-BE", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-    });
+  const goToMonth = (year: number, month: number) => {
+    setCursor({ year, month });
+    const prefix = `${year}-${String(month).padStart(2, "0")}-`;
+    setSelected(today.startsWith(prefix) ? today : `${prefix}01`);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <p className="text-muted-foreground">Chargement...</p>
-      </div>
-    );
-  }
+  const shift = (delta: number) => {
+    const next = shiftMonth(cursor.year, cursor.month, delta);
+    goToMonth(next.year, next.month);
+  };
+
+  const goToToday = () => {
+    const current = monthOf(today);
+    goToMonth(current.year, current.month);
+  };
+
+  const total = useMemo(() => {
+    if (viewMode === "week") {
+      return Object.values(days).reduce((sum, items) => sum + items.length, 0);
+    }
+    const prefix = `${cursor.year}-${String(cursor.month).padStart(2, "0")}-`;
+    return Object.entries(days)
+      .filter(([day]) => day.startsWith(prefix))
+      .reduce((sum, [, items]) => sum + items.length, 0);
+  }, [days, viewMode, cursor]);
+
+  const weekDays = useMemo(
+    () =>
+      Array.from({ length: WEEK_DAYS }, (_, i) => addDays(today, i)).filter(
+        (day) => (days[day]?.length ?? 0) > 0
+      ),
+    [days, today]
+  );
+
+  const selectedItems = days[selected] ?? [];
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-2">Planning 📅</h1>
-          <p className="text-muted-foreground">
-            {totalPlants} plante{totalPlants !== 1 ? "s" : ""} à arroser
+      <div className="mx-auto max-w-3xl px-4 py-6">
+        <div className="mb-6">
+          <h1 className="mb-2 text-3xl font-bold">Planning</h1>
+          <p className="text-muted-foreground" aria-live="polite">
+            {total} arrosage{total !== 1 ? "s" : ""}{" "}
+            {viewMode === "week" ? "cette semaine" : "ce mois-ci"}
           </p>
         </div>
 
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end">
-          <div className="flex gap-2">
+          <div className="flex gap-2" role="group" aria-label="Affichage">
             <Button
+              type="button"
               variant={viewMode === "week" ? "default" : "outline"}
+              aria-pressed={viewMode === "week"}
               onClick={() => setViewMode("week")}
+              className="h-11 px-4 text-base"
             >
               Semaine
             </Button>
             <Button
+              type="button"
               variant={viewMode === "month" ? "default" : "outline"}
+              aria-pressed={viewMode === "month"}
               onClick={() => setViewMode("month")}
+              className="h-11 px-4 text-base"
             >
               Mois
             </Button>
@@ -100,13 +181,13 @@ export default function PlanningPage() {
 
           <div className="flex flex-col gap-1">
             <label htmlFor="room-filter" className="text-xs text-muted-foreground">
-              Filtre
+              Pièce
             </label>
             <select
               id="room-filter"
               value={selectedRoomId}
               onChange={(e) => setSelectedRoomId(e.target.value)}
-              className="px-3 py-2 rounded-md border border-border bg-background text-sm"
+              className="h-11 rounded-md border border-border bg-background px-3 text-base"
             >
               <option value="all">Toutes les pièces</option>
               {rooms.map((room) => (
@@ -118,68 +199,74 @@ export default function PlanningPage() {
           </div>
         </div>
 
-        {totalPlants === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground mb-4">Aucune plante à arroser.</p>
-            <Link href="/plantes/new">
-              <Button>Ajouter une plante</Button>
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            {planning.map((day) => {
-              if (day.plants.length === 0) return null;
-
-              return (
-                <div key={day.date.toISOString()}>
-                  <h2 className="text-lg font-semibold mb-3">
-                    {formatDate(day.date)}
-                  </h2>
-
-                  <div className="space-y-3">
-                    {day.plants.map((plant) => (
-                      <Link
-                        key={plant.plantId}
-                        href={`/plantes/${plant.plantId}`}
-                      >
-                        <div className="p-4 border border-border rounded-lg hover:bg-muted transition-colors cursor-pointer">
-                          <div className="flex items-start gap-4">
-                            {plant.coverPhotoPath && (
-                              <div className="w-12 h-12 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={plant.coverPhotoPath}
-                                  alt={plant.plantName}
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <h3 className="font-semibold text-sm">
-                                {plant.plantName}
-                              </h3>
-                              <p className="text-xs text-muted-foreground">
-                                {plant.species.commonName}
-                              </p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {plant.roomName}
-                              </p>
-                              {plant.daysOverdue > 0 && (
-                                <p className="text-xs text-destructive mt-1">
-                                  {plant.daysOverdue} j de retard
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        {failed && (
+          <p
+            role="alert"
+            className="mb-4 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive"
+          >
+            Impossible de charger le planning. Réessayez.
+          </p>
         )}
+
+        <div
+          aria-busy={loading}
+          className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}
+        >
+          {viewMode === "month" ? (
+            <div className="space-y-6">
+              <MonthCalendar
+                year={cursor.year}
+                month={cursor.month}
+                today={today}
+                selected={selected}
+                markers={markers}
+                onSelect={setSelected}
+                onPrevious={() => shift(-1)}
+                onNext={() => shift(1)}
+                onToday={goToToday}
+              />
+
+              <section aria-label={`Arrosages du ${formatDayLong(selected)}`}>
+                <h2 className="mb-3 text-lg font-semibold first-letter:uppercase">
+                  {dayTitle(selected, today)}
+                </h2>
+                {selectedItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Rien à arroser ce jour-là.</p>
+                ) : (
+                  <ul className="space-y-2">
+                    {selectedItems.map((item) => (
+                      <li key={item.plantId}>
+                        <PlantRow item={item} />
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            </div>
+          ) : weekDays.length === 0 && !loading ? (
+            <div className="py-12 text-center">
+              <p className="mb-4 text-muted-foreground">Rien à arroser cette semaine.</p>
+              <Link href="/plantes/new">
+                <Button className="h-11 px-4 text-base">Ajouter une plante</Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {weekDays.map((day) => (
+                <section key={day} aria-label={dayTitle(day, today)}>
+                  <h2 className="mb-3 text-lg font-semibold first-letter:uppercase">{dayTitle(day, today)}</h2>
+                  <ul className="space-y-2">
+                    {days[day].map((item) => (
+                      <li key={item.plantId}>
+                        <PlantRow item={item} />
+                      </li>
+                    ))}
+                  </ul>
+                </section>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

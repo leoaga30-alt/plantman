@@ -1,3 +1,4 @@
+import { HUMIDITY_LABEL, LIGHT_LABEL, label } from "@/lib/labels";
 import { getRooms } from "@/app/actions/rooms";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -34,7 +35,7 @@ export default async function RoomsPage() {
                     <div>
                       <h2 className="text-lg font-semibold">{room.name}</h2>
                       <p className="text-sm text-muted-foreground">
-                        Lumière: {room.light} • Humidité: {room.humidity}
+                        Lumière {label(LIGHT_LABEL, room.light)} • Humidité {label(HUMIDITY_LABEL, room.humidity)}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         Été: {room.tempSummer}°C • Hiver: {room.tempWinter}°C

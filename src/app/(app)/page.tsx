@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { PlantScheduleItem } from "@/app/actions/watering";
+import { PlantThumb } from "@/components/PlantThumb";
 
 export default function TodayPage() {
   const [plants, setPlants] = useState<PlantScheduleItem[]>([]);
@@ -115,16 +116,7 @@ export default function TodayPage() {
                             className="p-4 border border-border rounded-lg"
                           >
                             <div className="flex items-start gap-4">
-                              {plant.coverPhotoPath && (
-                                <div className="w-16 h-16 bg-muted rounded-lg overflow-hidden flex-shrink-0">
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={plant.coverPhotoPath}
-                                    alt={plant.plantName}
-                                    className="w-full h-full object-cover"
-                                  />
-                                </div>
-                              )}
+                              <PlantThumb url={plant.coverPhotoUrl} className="size-16 shrink-0 rounded-lg" />
                               <div className="flex-1 min-w-0">
                                 <h4 className="font-semibold text-sm">
                                   {plant.plantName}

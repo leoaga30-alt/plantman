@@ -7,7 +7,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -23,6 +23,13 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-water: var(--water);
+  --color-water-foreground: var(--water-foreground);
+  --color-tint-sage: var(--tint-sage);
+  --color-tint-sky: var(--tint-sky);
+  --color-tint-sun: var(--tint-sun);
+  --color-tint-rose: var(--tint-rose);
+  --color-tint-clay: var(--tint-clay);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -73,6 +80,14 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  --water: #1a62c4;
+  --water-foreground: #ffffff;
+  --tint-sage: #e8f5e9;
+  --tint-sky: #dcecfa;
+  --tint-sun: #fef7d6;
+  --tint-rose: #fde0ec;
+  --tint-clay: #f3dfd0;
+  --shadow-card: none;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -127,4 +142,68 @@
   html {
     @apply font-sans;
   }
+}
+/*
+ * Design proposal, scoped to the previews of /design. Nothing in the app uses it yet:
+ * once validated, these values replace :root / .dark and the sizes move into the components.
+ */
+.theme-proposal {
+  --background: #fbf7ee;
+  --foreground: #1b2a21;
+  --card: #ffffff;
+  --card-foreground: #1b2a21;
+  --popover: #ffffff;
+  --popover-foreground: #1b2a21;
+  --primary: #15764a;
+  --primary-foreground: #ffffff;
+  --secondary: #ddf0e3;
+  --secondary-foreground: #0f4a2f;
+  --muted: #f1ebdd;
+  --muted-foreground: #55604f;
+  --accent: #ddf0e3;
+  --accent-foreground: #0f4a2f;
+  --destructive: #b23a0b;
+  --border: #e3dac6;
+  --input: #7f8f82;
+  --ring: #15764a;
+  --radius: 1rem;
+  --water: #1a62c4;
+  --water-foreground: #ffffff;
+  --tint-sage: #ddf0e3;
+  --tint-sky: #dcebfa;
+  --tint-sun: #fbefc4;
+  --tint-rose: #f9dde6;
+  --tint-clay: #f3dfd0;
+  --shadow-card: 0 1px 2px rgb(27 42 33 / 0.06), 0 8px 20px rgb(27 42 33 / 0.07);
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.theme-proposal[data-mode="dark"] {
+  --background: #0f1a14;
+  --foreground: #eaf3ec;
+  --card: #16251c;
+  --card-foreground: #eaf3ec;
+  --popover: #16251c;
+  --popover-foreground: #eaf3ec;
+  --primary: #4cc38a;
+  --primary-foreground: #06281a;
+  --secondary: #1e3027;
+  --secondary-foreground: #c8e8d3;
+  --muted: #1e3027;
+  --muted-foreground: #a8b8ad;
+  --accent: #1e3027;
+  --accent-foreground: #c8e8d3;
+  --destructive: #ff9a70;
+  --border: #264034;
+  --input: #5f7a69;
+  --ring: #4cc38a;
+  --water: #6cb2ff;
+  --water-foreground: #06203f;
+  --tint-sage: #1b3a2a;
+  --tint-sky: #1a2f48;
+  --tint-sun: #3a3417;
+  --tint-rose: #3d2230;
+  --tint-clay: #3b2a1e;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 20px rgb(0 0 0 / 0.35);
 }

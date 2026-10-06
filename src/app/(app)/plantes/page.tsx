@@ -1,6 +1,7 @@
 import { getPlants } from "@/app/actions/plants";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { PlantThumb } from "@/components/PlantThumb";
 
 export default async function PlantsPage() {
   const plants = await getPlants();
@@ -35,16 +36,7 @@ export default async function PlantsPage() {
                   {activePlants.map((plant) => (
                     <Link key={plant.id} href={`/plantes/${plant.id}`}>
                       <div className="p-4 border border-border rounded-lg hover:bg-accent transition-colors cursor-pointer h-full flex flex-col">
-                        {plant.coverPhotoPath && (
-                          <div className="w-full h-32 bg-muted rounded-lg mb-3 overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={plant.coverPhotoPath}
-                              alt={plant.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
+                        <PlantThumb url={plant.coverPhotoUrl} className="mb-3 h-32 w-full rounded-lg" />
                         <h3 className="font-semibold text-sm">{plant.name}</h3>
                         <p className="text-xs text-muted-foreground mt-1">
                           {plant.species?.commonName}
@@ -68,16 +60,7 @@ export default async function PlantsPage() {
                   {archivedPlants.map((plant) => (
                     <Link key={plant.id} href={`/plantes/${plant.id}`}>
                       <div className="p-4 border border-border/50 rounded-lg hover:bg-accent transition-colors cursor-pointer h-full flex flex-col opacity-60">
-                        {plant.coverPhotoPath && (
-                          <div className="w-full h-32 bg-muted rounded-lg mb-3 overflow-hidden">
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={plant.coverPhotoPath}
-                              alt={plant.name}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
+                        <PlantThumb url={plant.coverPhotoUrl} className="mb-3 h-32 w-full rounded-lg" />
                         <h3 className="font-semibold text-sm">{plant.name}</h3>
                         <p className="text-xs text-muted-foreground mt-1">
                           {plant.species?.commonName}

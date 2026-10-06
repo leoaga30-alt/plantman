@@ -1,3 +1,5 @@
+import { seasonalInterval } from "./season";
+
 export type LightLevel = "LOW" | "MEDIUM" | "BRIGHT" | "DIRECT_SUN";
 export type Humidity = "DRY" | "NORMAL" | "HUMID";
 export type PotMaterial = "PLASTIC" | "TERRACOTTA" | "GLAZED_CERAMIC" | "OTHER";
@@ -50,39 +52,12 @@ function getSeasonalInterval(
   autumn: number,
   winter: number
 ): number {
-  const month = date.getMonth(); // 0=Jan, 11=Dec
-  const day = date.getDate();
-  const dateOfYear = month * 30 + day; // Approximate day of year
-
-  // Anchor dates
-  const springAnchor = 4 * 30 + 15; // April 15
-  const summerAnchor = 7 * 30 + 15; // July 15
-  const autumnAnchor = 10 * 30 + 15; // Oct 15
-  const winterAnchor = 1 * 30 + 15; // Jan 15
-
-  if (dateOfYear >= springAnchor && dateOfYear < summerAnchor) {
-    // Spring to summer interpolation
-    const ratio = (dateOfYear - springAnchor) / (summerAnchor - springAnchor);
-    return spring + (summer - spring) * ratio;
-  } else if (dateOfYear >= summerAnchor && dateOfYear < autumnAnchor) {
-    // Summer to autumn
-    const ratio = (dateOfYear - summerAnchor) / (autumnAnchor - summerAnchor);
-    return summer + (autumn - summer) * ratio;
-  } else if (dateOfYear >= autumnAnchor || dateOfYear < winterAnchor) {
-    // Autumn to winter (wraps around year)
-    let ratio;
-    if (dateOfYear >= autumnAnchor) {
-      ratio =
-        (dateOfYear - autumnAnchor) / (365 - autumnAnchor + winterAnchor);
-    } else {
-      ratio = (365 - autumnAnchor + dateOfYear) / (365 - autumnAnchor + winterAnchor);
-    }
-    return autumn + (winter - autumn) * ratio;
-  } else {
-    // Winter to spring
-    const ratio = (dateOfYear - winterAnchor) / (springAnchor - winterAnchor);
-    return winter + (spring - winter) * ratio;
-  }
+  return seasonalInterval(date.getMonth(), date.getDate(), {
+    spring,
+    summer,
+    autumn,
+    winter,
+  });
 }
 
 function clamp(value: number, min: number, max: number): number {

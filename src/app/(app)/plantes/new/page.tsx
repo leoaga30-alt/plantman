@@ -44,8 +44,9 @@ export default function NewPlantPage() {
   };
 
   const handleSubmit = async (data: PlantFormData) => {
-    await createPlant(data);
-    router.push("/plantes");
+    const plant = await createPlant(data);
+    // The fiche is where the photo is added
+    router.push(`/plantes/${plant.id}`);
   };
 
   if (loading) {

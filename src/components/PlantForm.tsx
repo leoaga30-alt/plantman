@@ -32,23 +32,7 @@ export function PlantForm({
     acquiredAt: plant?.acquiredAt
       ? plant.acquiredAt.toISOString().split("T")[0]
       : "",
-    coverPhotoPath: plant?.coverPhotoPath || "",
   });
-  const [photoPreview, setPhotoPreview] = useState<string | null>(
-    plant?.coverPhotoPath || null
-  );
-
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotoPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -194,27 +178,6 @@ export function PlantForm({
             className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
           />
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Photo</label>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handlePhotoChange}
-          disabled={loading}
-          className="w-full px-3 py-2 border border-border rounded-lg bg-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-        />
-        {photoPreview && (
-          <div className="mt-4">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={photoPreview}
-              alt="Photo de couverture"
-              className="h-40 w-40 object-cover rounded-lg"
-            />
-          </div>
-        )}
       </div>
 
       {error && (
