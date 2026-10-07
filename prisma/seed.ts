@@ -8,6 +8,27 @@ const prisma = new PrismaClient();
 
 const dryRun = process.argv.includes("--dry-run");
 
+// Supabase exposes every table of the public schema through its REST API. RLS without
+// policies keeps them closed to the public key; Prisma connects as owner and is unaffected.
+// Also covers Prisma's own _prisma_migrations table and tables from future migrations.
+async function seedSecurity() {
+  const tables = await prisma.$queryRaw<{ name: string }[]>`
+    select c.relname as name
+    from pg_class c
+    where c.relnamespace = 'public'::regnamespace
+      and c.relkind in ('r', 'p')
+      and not c.relrowsecurity`;
+
+  for (const { name } of tables) {
+    await prisma.$executeRawUnsafe(
+      `alter table public."${name.replace(/"/g, '""')}" enable row level security`
+    );
+    console.log(`✓ RLS enabled on "${name}"`);
+  }
+
+  if (tables.length === 0) console.log("✓ RLS already enabled on every public table");
+}
+
 function adminClient() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -248,6 +269,7 @@ async function main() {
     return;
   }
 
+  await seedSecurity();
   await seedMembers();
   await seedStorage();
   if (inventory && (await shouldSeedInventory())) await seedInventory(inventory);

@@ -10,8 +10,8 @@ import {
   nextDue,
   type ScheduledPlant,
 } from "@/lib/watering/forecast";
-import { roomTemperature } from "@/lib/watering/season";
-import { dayKeyToDate, diffDays, todayKey, type DayKey } from "@/lib/dates";
+import { isWinterRest, roomTemperature } from "@/lib/watering/season";
+import { dayKeyToDate, diffDays, toDayKey, todayKey, type DayKey } from "@/lib/dates";
 import { signPhotoUrls } from "@/lib/storage";
 
 
@@ -45,10 +45,10 @@ async function loadPlants(roomId?: string) {
 }
 
 // Latest WATER and SKIP event per plant, in a single query.
-async function loadLatestEvents() {
+async function loadLatestEvents(plantId?: string) {
   const rows = await prisma.careEvent.groupBy({
     by: ["plantId", "type"],
-    where: { type: { in: ["WATER", "SKIP"] } },
+    where: { type: { in: ["WATER", "SKIP"] }, ...(plantId && { plantId }) },
     _max: { at: true },
   });
 
@@ -271,23 +271,35 @@ export async function getWateringForecast(
 }
 
 
-export async function getPlantIntervalExplanation(
-  plantId: string
-): Promise<IntervalExplanation> {
+export interface PlantSchedule {
+  explanation: IntervalExplanation;
+  today: DayKey;
+  /** Day the plant is (or was) due. Before `today` when overdue. */
+  nextDue: DayKey;
+  overdueDays: number;
+  /** Day of the last watering, in Belgian time. */
+  lastWateredOn: DayKey | null;
+  /** The species rests in winter and today is inside that rest. */
+  inWinterRest: boolean;
+}
+
+export async function getPlantSchedule(plantId: string): Promise<PlantSchedule> {
   await requireMember();
 
-  const plant = await prisma.plant.findUniqueOrThrow({
-    where: { id: plantId },
-    include: {
-      species: true,
-      room: true,
-    },
-  });
+  const [plant, events] = await Promise.all([
+    prisma.plant.findUniqueOrThrow({
+      where: { id: plantId },
+      include: { species: true, room: true },
+    }),
+    loadLatestEvents(plantId),
+  ]);
 
   const today = todayKey();
   const [, month, day] = today.split("-").map(Number);
+  const plantEvents = events.get(plantId);
+  const due = nextDue(toScheduledPlant(plant, plantEvents), today);
 
-  return explainInterval({
+  const explanation = explainInterval({
     intervalSpring: plant.species.intervalSpring,
     intervalSummer: plant.species.intervalSummer,
     intervalAutumn: plant.species.intervalAutumn,
@@ -304,4 +316,13 @@ export async function getPlantIntervalExplanation(
     heatingSeasonStart: "10-15",
     heatingSeasonEnd: "04-15",
   });
+
+  return {
+    explanation,
+    today,
+    nextDue: due.due,
+    overdueDays: due.overdueDays,
+    lastWateredOn: plantEvents?.water ? toDayKey(plantEvents.water) : null,
+    inWinterRest: plant.species.winterRest && isWinterRest(month - 1, day),
+  };
 }

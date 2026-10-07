@@ -44,3 +44,10 @@ export function careSummary(care: unknown): string | null {
   const summary = (care as { summary?: unknown }).summary;
   return typeof summary === "string" && summary.trim() ? summary.trim() : null;
 }
+
+/** French decimal formatting: 22.586 → "22,6", 0.9 → "0,9" (trailing zeros dropped unless `fixed`). */
+export function formatNumberFr(value: number, digits = 1, fixed = false): string {
+  const text = value.toFixed(digits);
+  const trimmed = fixed || !text.includes(".") ? text : text.replace(/\.?0+$/, "");
+  return trimmed.replace(".", ",");
+}

@@ -6,6 +6,7 @@ import {
   POT_MATERIAL_LABEL,
   WATER_NEED_LABEL,
   careSummary,
+  formatNumberFr,
   label,
 } from "../labels";
 
@@ -45,5 +46,19 @@ describe("careSummary", () => {
     expect(careSummary("texte")).toBeNull();
     expect(careSummary({ summary: "" })).toBeNull();
     expect(careSummary({ summary: 3 })).toBeNull();
+  });
+});
+
+describe("formatNumberFr", () => {
+  it("uses a decimal comma and drops useless zeros", () => {
+    expect(formatNumberFr(22.586956521739133)).toBe("22,6");
+    expect(formatNumberFr(20)).toBe("20");
+    expect(formatNumberFr(0.9, 2)).toBe("0,9");
+    expect(formatNumberFr(100, 0)).toBe("100");
+  });
+
+  it("keeps trailing zeros when asked", () => {
+    expect(formatNumberFr(0.9, 2, true)).toBe("0,90");
+    expect(formatNumberFr(1.1, 2, true)).toBe("1,10");
   });
 });

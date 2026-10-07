@@ -588,7 +588,7 @@ UI : résultat lisible + bouton **« Appliquer l'ajustement d'arrosage »** (met
 **Complété :**
 - Login par lien magique (SMTP Resend). Session en **cookies** (`@supabase/ssr`, PKCE) ; route `/auth/callback` qui accepte `code` (PKCE) ou `token_hash` (marche d'un appareil à l'autre) ; `emailRedirectTo` = `window.location.origin`, aucune URL en dur.
 - Middleware + `requireMember()` ; session vérifiée par `getUser()` (JWT validé auprès de Supabase, un cookie forgé est refusé).
-- RLS activé sans policy sur les 12 tables (API REST anonyme vide) ; inscriptions Supabase désactivées.
+- RLS activé sans policy sur **toutes** les tables du schéma `public` (12 tables + `_prisma_migrations`, que Supabase signalait le 3 oct.) ; `npm run db:seed` active le RLS sur toute table qui en manque, **à relancer après chaque `db:migrate`** (à documenter dans le README) ; inscriptions Supabase désactivées.
 - Config Supabase à garder : Site URL = URL Railway ; Redirect URLs `https://…railway.app/**` et `http://localhost:3000/**` ; template Magic Link `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email` (à documenter dans le README, 6-5).
 
 ### Phase 2 — Pièces, espèces, plantes (saisie manuelle)
@@ -610,7 +610,7 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 - [x] Écran « Aujourd'hui » : Arrosé ✓ et « Sol humide » (bouton +2 j → événement SKIP), liste par pièce
 - [ ] Écran « Aujourd'hui » : bouton « Tout arrosé » par pièce
 - [x] Écran Planning : semaine (liste) et mois (calendrier avec points sur les jours d'arrosage, détail du jour sélectionné), filtre par pièce, dates en heure belge (`lib/dates`)
-- [x] Explication de l'intervalle sur la fiche plante
+- [x] Fiche plante : « Prochain arrosage » (date, retard, dernier arrosage, repos hivernal) et « Fréquence » expliquée en français (effet de chaque facteur en % plus/moins souvent, calcul détaillé)
 - [x] Journal : ajout manuel engrais / rempotage
 
 ✅ Tests verts ; marquer un arrosage retire la plante de la liste du jour et la replanifie correctement ; les autres membres le voient. Planning 7j/mois, journal avec labels accessibles, feedback d'erreur. Revue web-design-guidelines appliquée.
@@ -655,7 +655,7 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 
 ✅ Fait : navigation, mise en prod Railway. À faire : cron (accès, email, planificateur), PWA, export, audit UI, README.
 
-Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000) ; police jamais chargée (`--font-sans` se référençait lui-même → l'app s'affichait en Times) ; ancrages saisonniers du moteur décalés d'un mois ; bouton `+2j` (SKIP) sans effet sur le planning ; seed d'inventaire qui recréait des pièces/plantes renommées (désormais chargement initial uniquement, `--force-inventory` pour compléter).
+Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000) ; police jamais chargée (`--font-sans` se référençait lui-même → l'app s'affichait en Times) ; ancrages saisonniers du moteur décalés d'un mois ; bouton `+2j` (SKIP) sans effet sur le planning ; table `_prisma_migrations` sans RLS (lisible et modifiable avec la clé publique, alerte Supabase) ; explication d'intervalle illisible (`22.586956…°C`, « × 0.90 » sans sens) ; seed d'inventaire qui recréait des pièces/plantes renommées (désormais chargement initial uniquement, `--force-inventory` pour compléter).
 
 ### Phase 7 — Capteurs SwitchBot
 

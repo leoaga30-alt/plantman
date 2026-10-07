@@ -68,3 +68,28 @@ export function isWinterRest(month: number, day: number): boolean {
   if (month === NOVEMBER) return day >= 15;
   return month === 11 || month === 0 || month === 1; // Dec, Jan, Feb
 }
+
+export type SeasonName = "hiver" | "printemps" | "été" | "automne";
+
+/** Season whose anchor date (15 Jan / 15 Apr / 15 Jul / 15 Oct) is the closest to the given day. */
+export function nearestSeason(month: number, day: number): SeasonName {
+  const doy = dayOfYear(month, day);
+  const anchors: [SeasonName, number][] = [
+    ["hiver", WINTER],
+    ["printemps", SPRING],
+    ["été", SUMMER],
+    ["automne", AUTUMN],
+  ];
+
+  let best = anchors[0];
+  let bestDistance = Infinity;
+  for (const anchor of anchors) {
+    const gap = Math.abs(doy - anchor[1]);
+    const distance = Math.min(gap, YEAR_LENGTH - gap); // winter wraps around the new year
+    if (distance < bestDistance) {
+      best = anchor;
+      bestDistance = distance;
+    }
+  }
+  return best[0];
+}

@@ -1,4 +1,5 @@
-import { seasonalInterval } from "./season";
+import { nearestSeason, seasonalInterval } from "./season";
+import { formatNumberFr } from "../labels";
 
 export type LightLevel = "LOW" | "MEDIUM" | "BRIGHT" | "DIRECT_SUN";
 export type Humidity = "DRY" | "NORMAL" | "HUMID";
@@ -35,14 +36,27 @@ export interface IntervalInput {
   heatingSeasonEnd: string; // "MM-DD"
 }
 
+export interface IntervalFactorExplanation {
+  /** Short name: "Pièce à 22,6 °C" */
+  label: string;
+  /** Plain-French reason: "plus chaud que 20 °C : la terre sèche plus vite" */
+  detail: string;
+  factor: number;
+  /** "faster" = the plant is watered more often because of this factor. */
+  effect: "faster" | "slower";
+  /** Size of the effect on the interval, in percent (10 for ×0,90 or ×1,10). */
+  percent: number;
+}
+
 export interface IntervalExplanation {
   base: number;
   baseLabel: string;
-  factors: {
-    label: string;
-    factor: number;
-  }[];
+  factors: IntervalFactorExplanation[];
+  /** base × all factors, before rounding. */
+  exact: number;
   final: number;
+  /** "Arroser environ tous les 11 jours" */
+  summary: string;
 }
 
 function getSeasonalInterval(
@@ -146,13 +160,33 @@ export function calculateInterval(input: IntervalInput): number {
   return clamp(final, 1, 60);
 }
 
+function factorExplanation(
+  label: string,
+  detail: string,
+  factor: number
+): IntervalFactorExplanation {
+  return {
+    label,
+    detail,
+    factor,
+    effect: factor < 1 ? "faster" : "slower",
+    percent: Math.round(Math.abs(1 - factor) * 100),
+  };
+}
+
+function everyDays(days: number): string {
+  return days === 1 ? "tous les jours" : `tous les ${days} jours`;
+}
+
 export function explainInterval(input: IntervalInput): IntervalExplanation {
   if (input.intervalOverride !== undefined) {
     return {
       base: input.intervalOverride,
-      baseLabel: "Forçage manuel",
+      baseLabel: "Fréquence fixée manuellement pour cette plante",
       factors: [],
+      exact: input.intervalOverride,
       final: input.intervalOverride,
+      summary: `Arroser ${everyDays(input.intervalOverride)}`,
     };
   }
 
@@ -163,15 +197,7 @@ export function explainInterval(input: IntervalInput): IntervalExplanation {
     input.intervalAutumn,
     input.intervalWinter
   );
-
-  const seasonName =
-    input.date.getMonth() >= 2 && input.date.getMonth() < 5
-      ? "printemps"
-      : input.date.getMonth() >= 5 && input.date.getMonth() < 8
-        ? "été"
-        : input.date.getMonth() >= 8 && input.date.getMonth() < 11
-          ? "automne"
-          : "hiver";
+  const season = nearestSeason(input.date.getMonth(), input.date.getDate());
 
   const tempFactor = clamp(1 - 0.04 * (input.temperature - 20), 0.7, 1.4);
   const lightFactor =
@@ -197,67 +223,104 @@ export function explainInterval(input: IntervalInput): IntervalExplanation {
     else if (input.potDiameterCm > 25) sizeFactor = 1.15;
   }
 
-  const factors = [];
+  const factors: IntervalFactorExplanation[] = [];
+  const differs = (factor: number) => Math.abs(factor - 1.0) > 0.01;
 
-  if (Math.abs(tempFactor - 1.0) > 0.01) {
-    factors.push({
-      label: `pièce à ${input.temperature}°C`,
-      factor: tempFactor,
-    });
+  if (differs(tempFactor)) {
+    factors.push(
+      factorExplanation(
+        `Pièce à ${formatNumberFr(input.temperature)} °C`,
+        input.temperature > 20
+          ? "plus chaud que 20 °C : la terre sèche plus vite"
+          : "plus frais que 20 °C : la terre sèche plus lentement",
+        tempFactor
+      )
+    );
   }
 
-  if (Math.abs(lightFactor - 1.0) > 0.01) {
-    const lightName =
-      input.light === "LOW"
-        ? "basse"
-        : input.light === "BRIGHT"
-          ? "vive"
-          : input.light === "DIRECT_SUN"
-            ? "soleil direct"
-            : "moyenne";
-    factors.push({ label: `lumière ${lightName}`, factor: lightFactor });
+  if (differs(lightFactor)) {
+    factors.push(
+      factorExplanation(
+        input.light === "LOW"
+          ? "Lumière faible"
+          : input.light === "BRIGHT"
+            ? "Lumière vive"
+            : "Soleil direct",
+        input.light === "LOW"
+          ? "peu de lumière : la plante boit moins"
+          : input.light === "BRIGHT"
+            ? "beaucoup de lumière : la terre sèche plus vite"
+            : "plein soleil : la terre sèche beaucoup plus vite",
+        lightFactor
+      )
+    );
   }
 
-  if (Math.abs(humidityFactor - 1.0) > 0.01) {
-    const humidityName =
-      input.humidity === "DRY"
-        ? "sèche"
-        : input.humidity === "HUMID"
-          ? "humide"
-          : "normale";
-    factors.push({ label: `air ${humidityName}`, factor: humidityFactor });
+  if (differs(humidityFactor)) {
+    factors.push(
+      factorExplanation(
+        input.humidity === "DRY" ? "Air sec" : "Air humide",
+        input.humidity === "DRY"
+          ? "air sec : la terre sèche plus vite"
+          : "air humide : la terre sèche plus lentement",
+        humidityFactor
+      )
+    );
   }
 
   if (heaterFactor < 1.0) {
-    factors.push({ label: "radiateur proche", factor: heaterFactor });
+    factors.push(
+      factorExplanation(
+        "Radiateur proche",
+        "pendant la saison de chauffe, l'air est plus sec",
+        heaterFactor
+      )
+    );
   }
 
-  if (Math.abs(materialFactor - 1.0) > 0.01) {
-    factors.push({ label: "terre cuite", factor: materialFactor });
+  if (differs(materialFactor)) {
+    factors.push(
+      factorExplanation(
+        "Pot en terre cuite",
+        "la terre cuite laisse l'eau s'évaporer par les parois",
+        materialFactor
+      )
+    );
   }
 
-  if (Math.abs(sizeFactor - 1.0) > 0.01) {
-    const sizeDesc =
-      input.potDiameterCm && input.potDiameterCm < 12
-        ? "petit pot"
-        : input.potDiameterCm && input.potDiameterCm > 25
-          ? "grand pot"
-          : "";
-    if (sizeDesc) {
-      factors.push({ label: sizeDesc, factor: sizeFactor });
-    }
+  if (differs(sizeFactor)) {
+    const small = sizeFactor < 1;
+    factors.push(
+      factorExplanation(
+        small ? "Petit pot" : "Grand pot",
+        small
+          ? "peu de terre : le pot se vide vite"
+          : "beaucoup de terre : le pot garde l'eau plus longtemps",
+        sizeFactor
+      )
+    );
   }
 
-  if (Math.abs(input.intervalAdjust - 1.0) > 0.01) {
-    factors.push({ label: "ajustement", factor: input.intervalAdjust });
+  if (differs(input.intervalAdjust)) {
+    factors.push(
+      factorExplanation(
+        "Ajustement de la plante",
+        "réglage propre à cette plante (par exemple après un diagnostic)",
+        input.intervalAdjust
+      )
+    );
   }
 
   const final = calculateInterval(input);
+  const exact = baseInterval * factors.reduce((product, f) => product * f.factor, 1);
+  const base = Math.round(baseInterval);
 
   return {
-    base: Math.round(baseInterval),
-    baseLabel: `Base ${seasonName} ${Math.round(baseInterval)} j`,
+    base,
+    baseLabel: `Intervalle de référence de l'espèce en ce moment (${season}) : ${base} jours`,
     factors,
+    exact,
     final,
+    summary: `Arroser environ ${everyDays(final)}`,
   };
 }
