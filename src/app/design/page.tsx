@@ -2,7 +2,7 @@ import { contrastRatio, wcagLevel } from "@/lib/color";
 import { DesignPreviews } from "./previews";
 
 export const metadata = {
-  title: "Design — audit et proposition",
+  title: "PlantMan - design",
 };
 
 // Renders `code` spans inside plain strings.

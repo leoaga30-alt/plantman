@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <title>PlantMan</title>
+  <rect width="512" height="512" rx="112" fill="#2d6a4f"/>
+  <path d="M256 408V236" fill="none" stroke="#f4f1de" stroke-width="26" stroke-linecap="round"/>
+  <path d="M256 262C256 168 322 108 418 108C418 206 356 262 256 262Z" fill="#f4f1de"/>
+  <path d="M256 330C256 252 206 202 122 202C122 280 170 330 256 330Z" fill="#74b894"/>
+  <path d="M168 408H344" fill="none" stroke="#f4f1de" stroke-width="26" stroke-linecap="round"/>
+</svg>
