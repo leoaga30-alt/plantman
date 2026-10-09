@@ -1,6 +1,7 @@
 import type { PlantSchedule } from "@/app/actions/watering";
 import { diffDays, formatDayLong } from "@/lib/dates";
 import { formatNumberFr } from "@/lib/labels";
+import { DEFAULT_POT_DIAMETER_CM, formatQuantity } from "@/lib/watering/quantity";
 
 function nextText(schedule: PlantSchedule): string {
   const { nextDue, today, overdueDays } = schedule;
@@ -15,7 +16,7 @@ function nextText(schedule: PlantSchedule): string {
 }
 
 export function WateringCard({ schedule }: { schedule: PlantSchedule }) {
-  const { explanation, lastWateredOn, inWinterRest, overdueDays, nextDue } = schedule;
+  const { explanation, lastWateredOn, inWinterRest, overdueDays, nextDue, quantity } = schedule;
 
   return (
     <section aria-labelledby="watering-title" className="space-y-5 rounded-xl bg-muted p-4">
@@ -36,6 +37,15 @@ export function WateringCard({ schedule }: { schedule: PlantSchedule }) {
             ? `Dernier arrosage : ${formatDayLong(lastWateredOn)}`
             : "Aucun arrosage enregistré pour l'instant"}
         </p>
+        <p className="mt-3 text-base">
+          Quantité conseillée : <strong>environ {formatQuantity(quantity.ml)}</strong>
+        </p>
+        {quantity.estimated && (
+          <p className="text-sm text-muted-foreground">
+            Diamètre du pot non renseigné : calculé pour un pot de {DEFAULT_POT_DIAMETER_CM} cm.
+            Indique-le dans « Modifier » pour affiner.
+          </p>
+        )}
         {inWinterRest && (
           <p className="mt-3 rounded-lg bg-tint-sky p-3 text-sm">
             <strong>Repos hivernal :</strong> cette plante ne s&apos;arrose plus jusqu&apos;au

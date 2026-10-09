@@ -642,9 +642,9 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 - [x] Navigation : barre d'onglets en bas sur mobile, barre haute dès `md` (`AppNav`)
 - [x] Mise en prod sur Railway (auto-déploiement GitHub, pooler Supabase IPv4) — remplace Vercel
 - [x] Route `/api/cron/daily` + `DigestLog` + `CRON_SECRET` (squelette)
-- [ ] Cron : route accessible sans session (le middleware la redirige vers `/login`), protégée par `CRON_SECRET`
-- [ ] Cron : envoi du digest par email (installer Resend ; l'envoi est en commentaire dans la route)
-- [ ] Cron : planificateur Railway, 1×/jour (sert aussi d'anti-pause Supabase)
+- [x] Cron : route `/api/cron/daily` accessible sans session mais protégée par `CRON_SECRET` (comparaison à temps constant) ; `?dry=1` montre l'email sans l'envoyer
+- [x] Email quotidien « plantes à arroser aujourd'hui » : plante, pièce, **quantité d'eau** (calculée d'après le diamètre du pot et le besoin en eau de l'espèce), retard ; envoi via l'API Resend (sans dépendance), un email par membre `notifyDaily`, `DigestLog` comme verrou anti-doublon
+- [x] Planificateur intégré à l'app (`instrumentation.ts`) : contrôle toutes les 10 min, envoi dès 7 h (heure belge) jusqu'à 20 h avec rattrapage si l'app était arrêtée ; désactivable avec `DIGEST_SCHEDULER=off`, heure réglable avec `DIGEST_HOUR` ; sert aussi d'anti-pause Supabase
 - [x] **[Leo]** Variables de prod sur Railway (`CRON_SECRET`, `ANTHROPIC_API_KEY`, `AI_MOCK=false`, `RESEND_API_KEY`…)
 - [ ] **[Leo]** Plafond de dépense dans la console Anthropic
 - [ ] **Design** : validation de la proposition sur `/design` (audit + palette « jardin vivant » + écrans comparés), puis application dans l'app (thème, tailles ≥ 44 px, cartes, Aujourd'hui) — en attente de Leo
@@ -654,6 +654,8 @@ Statut : CRUD en place, pages de détail corrigées le 6 oct. (les `params` des 
 - [ ] README : installation, variables, déploiement Railway, config Supabase (URLs, template email, pooler), export
 
 ✅ Fait : navigation, mise en prod Railway. À faire : cron (accès, email, planificateur), PWA, export, audit UI, README.
+
+Quantité d'eau : aucune donnée en base, estimation = volume du pot (≈ 0,45 × diamètre³) × 12 / 20 / 28 % selon le besoin LOW / MEDIUM / HIGH, arrondie ; pot inconnu → pot de 15 cm supposé et signalé dans l'email.
 
 Bugs corrigés en recette (6 oct.) : pages `[id]` qui revenaient à la liste (`params` asynchrone) ; `memberId` = id Supabase Auth au lieu de l'id `Member` (500 sur « Arrosé », `P2003` sur `AiUsage`) ; `AuthHandler` qui renvoyait toute page vers `/` ; JSON IA entouré de ```` ```json ```` (`parseJsonResponse`) ; `max_tokens` des fiches (2000 → 4000) ; police jamais chargée (`--font-sans` se référençait lui-même → l'app s'affichait en Times) ; ancrages saisonniers du moteur décalés d'un mois ; bouton `+2j` (SKIP) sans effet sur le planning ; table `_prisma_migrations` sans RLS (lisible et modifiable avec la clé publique, alerte Supabase) ; explication d'intervalle illisible (`22.586956…°C`, « × 0.90 » sans sens) ; seed d'inventaire qui recréait des pièces/plantes renommées (désormais chargement initial uniquement, `--force-inventory` pour compléter).
 

@@ -1,67 +1,29 @@
-import { prisma } from "@/lib/db";
+import { createHash, timingSafeEqual } from "node:crypto";
+import { runDailyDigest } from "@/lib/daily-digest";
 
-// TODO: Install resend and configure email sending
-// const resend = new Resend(process.env.RESEND_API_KEY);
+export const dynamic = "force-dynamic";
 
+// Constant-time comparison of the Bearer token with CRON_SECRET (hashed so lengths always match).
+function isAuthorized(req: Request): boolean {
+  const expected = process.env.CRON_SECRET;
+  if (!expected) return false;
+
+  const given = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "") ?? "";
+  const hash = (value: string) => createHash("sha256").update(value).digest();
+  return timingSafeEqual(hash(given), hash(expected));
+}
+
+// Manual trigger of the daily reminder. The app also runs it by itself every morning
+// (see digest-scheduler). `?dry=1` shows what would be sent, without sending or logging anything.
 export async function GET(req: Request) {
-  const secret = req.headers.get("authorization")?.split(" ")[1];
+  if (!isAuthorized(req)) return new Response("Unauthorized", { status: 401 });
 
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  const dryRun = new URL(req.url).searchParams.get("dry") === "1";
 
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dateStr = today.toISOString().split("T")[0];
-
-    // Idempotency check
-    const existing = await prisma.digestLog.findUnique({
-      where: { date: dateStr },
-    });
-
-    if (existing) {
-      return new Response("Already sent", { status: 200 });
-    }
-
-    // Get all members who want daily digest
-    const members = await prisma.member.findMany({
-      where: { notifyDaily: true },
-    });
-
-    for (const member of members) {
-      // Mock getTodayPlants for this member (would need context injection in real code)
-      // For now, fetch due plants directly
-      const duePlants = await prisma.plant.findMany({
-        where: { archivedAt: null },
-        include: { species: true, room: true },
-        take: 20,
-      });
-
-      if (duePlants.length === 0) continue;
-
-      // TODO: Uncomment when resend is installed
-      // try {
-      //   await resend.emails.send({
-      //     from: process.env.EMAIL_FROM || "noreply@example.com",
-      //     to: member.email,
-      //     subject: `🌿 Arrosoir — ${duePlants.length} plante(s) aujourd'hui`,
-      //     html,
-      //   });
-      // } catch (err) {
-      //   console.error(`Failed to send digest to ${member.email}:`, err);
-      // }
-      console.log(`Digest for ${member.email}: ${duePlants.length} plants`);
-    }
-
-    // Log that we sent today
-    await prisma.digestLog.create({
-      data: { date: dateStr },
-    });
-
-    return new Response("OK", { status: 200 });
+    return Response.json(await runDailyDigest({ dryRun }));
   } catch (err) {
-    console.error("Cron error:", err);
+    console.error("Daily digest failed:", err instanceof Error ? err.message : err);
     return new Response("Error", { status: 500 });
   }
 }

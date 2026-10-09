@@ -1,7 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const publicRoutes = ["/login", "/design", "/auth/callback"];
+// /api/cron/daily has no session: it is protected by CRON_SECRET inside the route.
+const publicRoutes = ["/login", "/design", "/auth/callback", "/api/cron/daily"];
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;

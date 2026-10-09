@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addDays,
+  brusselsHour,
   dayKeyToDate,
   diffDays,
   formatDayLong,
@@ -94,5 +95,17 @@ describe("French formatting", () => {
   it("formats days and months", () => {
     expect(formatDayLong("2026-10-06")).toBe("mardi 6 octobre");
     expect(formatMonth(2026, 10)).toBe("octobre 2026");
+  });
+});
+
+describe("brusselsHour", () => {
+  it("follows summer and winter time", () => {
+    expect(brusselsHour(new Date("2026-07-14T05:00:00Z"))).toBe(7); // UTC+2
+    expect(brusselsHour(new Date("2026-01-14T05:00:00Z"))).toBe(6); // UTC+1
+  });
+
+  it("uses a 0-23 clock, with midnight as 0", () => {
+    expect(brusselsHour(new Date("2026-01-14T23:30:00Z"))).toBe(0);
+    expect(brusselsHour(new Date("2026-01-14T22:59:00Z"))).toBe(23);
   });
 });

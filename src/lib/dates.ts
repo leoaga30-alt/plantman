@@ -91,3 +91,14 @@ export function formatDayLong(key: DayKey): string {
 export function formatMonth(year: number, month: number): string {
   return monthFormatter.format(new Date(Date.UTC(year, month - 1, 1, 12)));
 }
+
+const hourFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: APP_TIMEZONE,
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+/** Hour of the day (0-23) in Belgian time. */
+export function brusselsHour(now: Date = new Date()): number {
+  return Number(hourFormatter.format(now));
+}

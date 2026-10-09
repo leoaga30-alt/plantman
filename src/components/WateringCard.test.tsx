@@ -27,6 +27,7 @@ const schedule = (overrides: Partial<PlantSchedule> = {}): PlantSchedule => ({
   overdueDays: 0,
   lastWateredOn: "2026-10-04",
   inWinterRest: false,
+  quantity: { ml: 300, estimated: false },
   ...overrides,
 });
 
@@ -81,5 +82,17 @@ describe("WateringCard", () => {
     expect(text(<WateringCard schedule={schedule({ inWinterRest: true })} />)).toContain(
       "Repos hivernal"
     );
+  });
+
+  it("tells how much water to give, and when the pot size is a guess", () => {
+    const known = text(<WateringCard schedule={schedule()} />);
+    expect(known).toContain("Quantité conseillée : environ 300 ml");
+    expect(known).not.toContain("non renseigné");
+
+    const guessed = text(
+      <WateringCard schedule={schedule({ quantity: { ml: 1400, estimated: true } })} />
+    );
+    expect(guessed).toContain("environ 1,4 L");
+    expect(guessed).toContain("Diamètre du pot non renseigné : calculé pour un pot de 15 cm");
   });
 });
